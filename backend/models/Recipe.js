@@ -1,3 +1,4 @@
+//backend/models/Recipe.js
 const mongoose = require("mongoose");
 
 const recipeSchema = new mongoose.Schema({
@@ -13,3 +14,7 @@ const recipeSchema = new mongoose.Schema({
     default: Date.now,
   },
 });
+
+const Recipe = mongoose.model("Recipe", recipeSchema);
+
+module.exports = Recipe;
