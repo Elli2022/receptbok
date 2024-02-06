@@ -19,7 +19,7 @@ app.get("/", (req, res) => {
 });
 
 // Importera och använd recept-routes
-const recipesRouter = require("./routes/recipe"); // Anpassa sökvägen efter din mappstruktur
+const recipesRouter = require("../backend/routes/recipe");
 app.use("/recipes", recipesRouter);
 
 // Starta servern
