@@ -1,3 +1,4 @@
+//backend/server.js
 // dotenv kongifuarion i toppen av filen för att säkerställa att miljövariablerna från .env laddas innan de används
 require("dotenv").config(); // Laddar miljövariabler från .env-filen
 const express = require("express");
