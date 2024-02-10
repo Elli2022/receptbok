@@ -1,4 +1,4 @@
-// pages/api/recipes.js
+// pages/api/recipes.tsx
 
 export default async function handler(
   req: any,
@@ -15,15 +15,22 @@ export default async function handler(
 
   try {
     // Använd fetch för att anropa din backend och hämta recepten
+
+    if (!backendUrl) {
+      throw new Error("DATABASE_URL är inte definierad");
+    }
+
     const response = await fetch(backendUrl);
     const recipes = await response.json();
 
     // Om allt går bra, skicka recepten till klienten
     res.status(200).json(recipes);
   } catch (error) {
-    // Om något går fel, skicka ett felmeddelande
+    // Typkontroll innan konvertering
+    const errorMessage =
+      error instanceof Error ? error.message : "Ett okänt fel uppstod";
     res
       .status(500)
-      .json({ message: "Kunde inte hämta recept", error: error.toString() });
+      .json({ message: "Kunde inte hämta recept", error: errorMessage });
   }
 }
