@@ -21,7 +21,13 @@ export async function getServerSideProps(context: any) {
   };
 }
 
-function ReceptPage({ recept }) {
+interface Recept {
+  _id: string;
+  name: string;
+  // Lägg till andra fält här efter behov
+}
+
+function ReceptPage({ recept }: { recept: Recept[] }) {
   return (
     <div>
       <h1>Recept</h1>
