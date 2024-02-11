@@ -1,4 +1,4 @@
-//src/components/RecipeList.tsx
+// src/components/RecipeList.tsx
 
 import React from "react";
 
@@ -6,13 +6,19 @@ type Recipe = {
   _id: string;
   name: string;
   description: string;
+  ingredients: string[];
+  instructions: string;
 };
 
-type Props = {
+interface RecipeListProps {
   recipes: Recipe[];
-};
+}
 
-const RecipeList: React.FC<Props> = ({ recipes }) => {
+const RecipeList: React.FC<RecipeListProps> = ({ recipes }) => {
+  if (recipes.length === 0) {
+    return <p>Inga recept hittades.</p>;
+  }
+
   return (
     <div>
       {recipes.map((recipe) => (
