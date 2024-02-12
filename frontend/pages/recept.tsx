@@ -1,5 +1,6 @@
 //pages/recept.tsx
 import React from "react";
+import Navbar from "@/app/components/Navbar";
 
 // Typdefinitioner (anpassa dessa baserat på din datastruktur)
 type Recept = {
@@ -26,20 +27,21 @@ export async function getServerSideProps() {
 // Komponent för att visa enskilda recept
 const ReceptPage = ({ recept }: { recept: Recept[] }) => {
   return (
-    <div className="max-w-8xl mx-auto p-5">
-      <h1 className="text-4xl font-bold text-center my-8">Recept</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="max-w-8xl mx-auto px-4 py-8">
+      <Navbar />
+      <h1 className="text-4xl font-bold text-center mb-8">Recept</h1>
+      <div className="grid grid-cols-1 gap-6">
         {recept.map((recept) => (
           <div
             key={recept._id}
             className="bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 ease-in-out"
           >
-            <div className="p-10">
+            <div className="p-6">
               <h2 className="text-2xl font-semibold mb-2">{recept.name}</h2>
               <p className="text-gray-700 mb-4">{recept.description}</p>
               <div className="mb-4">
                 <h3 className="font-semibold underline">Ingredienser:</h3>
-                <ul className="list-disc list-inside">
+                <ul className="list-disc pl-5">
                   {recept.ingredients.map((ingredient, index) => (
                     <li key={index} className="text-gray-600">
                       {ingredient}
