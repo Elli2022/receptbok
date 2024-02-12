@@ -8,7 +8,6 @@ const Navbar = () => {
     <nav>
       <ul style={{ listStyleType: "none", padding: 0 }}>
         <li style={{ display: "inline", marginRight: "20px" }}>
-          {/* Använd next/link för navigering */}
           <Link href="/">
             <a>Hem</a> {/* Använd ett <a>-element som barn till Link */}
           </Link>
