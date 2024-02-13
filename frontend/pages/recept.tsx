@@ -10,6 +10,7 @@ type Recept = {
   description: string;
   ingredients: string[];
   instructions: string;
+  image: string;
 };
 
 type Props = {
@@ -41,6 +42,7 @@ const ReceptPage = ({ recept }: { recept: Recept[] }) => {
               <h2 className="text-4xl font-bold mb-2 text-black">
                 {recept.name}
               </h2>
+              <img src={recept.image} alt="" />
               <p className="text-gray-700 mb-4">{recept.description}</p>
               <div className="mb-4">
                 <h3 className="font-semibold underline text-black">
