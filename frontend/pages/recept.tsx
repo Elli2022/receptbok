@@ -1,6 +1,7 @@
 //pages/recept.tsx
 import React from "react";
 import Navbar from "@/app/components/Navbar";
+import Footer from "@/app/components/Footer";
 
 // Typdefinitioner (anpassa dessa baserat på din datastruktur)
 type Recept = {
@@ -42,7 +43,9 @@ const ReceptPage = ({ recept }: { recept: Recept[] }) => {
               </h2>
               <p className="text-gray-700 mb-4">{recept.description}</p>
               <div className="mb-4">
-                <h3 className="font-semibold underline">Ingredienser:</h3>
+                <h3 className="font-semibold underline text-black">
+                  Ingredienser:
+                </h3>
                 <ul className="list-disc pl-5">
                   {recept.ingredients.map((ingredient, index) => (
                     <li key={index} className="text-gray-600">
@@ -52,7 +55,9 @@ const ReceptPage = ({ recept }: { recept: Recept[] }) => {
                 </ul>
               </div>
               <div>
-                <h3 className="font-semibold underline">Instruktioner:</h3>
+                <h3 className="font-semibold underline text-black">
+                  Instruktioner:
+                </h3>
                 <p className="whitespace-pre-line text-gray-600">
                   {recept.instructions}
                 </p>
@@ -61,6 +66,7 @@ const ReceptPage = ({ recept }: { recept: Recept[] }) => {
           </div>
         ))}
       </div>
+      <Footer />
     </div>
   );
 };

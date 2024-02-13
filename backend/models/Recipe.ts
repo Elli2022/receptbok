@@ -7,6 +7,7 @@ interface IRecipe extends Document {
   ingredients: string[];
   instructions?: string[];
   createdAt: Date;
+  image: string;
 }
 
 const recipeSchema: Schema = new Schema({
@@ -16,6 +17,7 @@ const recipeSchema: Schema = new Schema({
   ingredients: { type: [String], required: true },
   instructions: { type: [String] },
   createdAt: { type: Date, default: Date.now },
+  image: { type: String },
 });
 
 // Skapa ett textindex
