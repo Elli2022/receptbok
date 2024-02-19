@@ -31,6 +31,13 @@ router.post(
   "/",
   upload.single("image"),
   async (req: Request, res: Response) => {
+    // Kontrollera om en fil faktiskt laddades upp
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({ message: "Ingen bildfil bifogades med förfrågan." });
+    }
+
     const recipe = new Recipe({
       name: req.body.name,
       description: req.body.description,
