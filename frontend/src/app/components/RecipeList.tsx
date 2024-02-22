@@ -3,10 +3,11 @@
 import React from "react";
 
 type Recipe = {
+  [x: string]: string | undefined;
   _id: string;
   name: string;
   description: string;
-  ingredients: string[];
+  ingredients: string;
   instructions: string;
 };
 
