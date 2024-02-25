@@ -1,25 +1,24 @@
 import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
 
-// Definiera en typ för att matcha din receptdata
+// Definierar en typ för att matcha min receptdata (Interface för Recept)
 interface Recept {
   _id: string;
   name: string;
   description: string;
   image: string;
-  // Lägg till fler egenskaper här som matchar din datastruktur
+  ingredients: string[];
+  instructions: string[];
 }
 
 const ReceptDetalj = () => {
   const router = useRouter();
   const { id } = router.query;
-  // Använd den definierade typen för din state
   const [recept, setRecept] = useState<Recept | null>(null);
 
   useEffect(() => {
     const fetchRecept = async () => {
       if (id && typeof id === "string") {
-        // Lägg till en typkontroll för id
         try {
           const response = await fetch(
             `${process.env.NEXT_PUBLIC_BACKEND_URL}/recipes/${id}`
@@ -42,7 +41,24 @@ const ReceptDetalj = () => {
       <h1 className="text-4xl font-bold mb-4">{recept.name}</h1>
       <img src={recept.image} alt={recept.name} />
       <p>{recept.description}</p>
-      {}
+      <div>
+        <h2 className="text-2xl font-bold mb-2">Ingredienser</h2>
+        <ul>
+          {recept.ingredients.map((ingredient, index) => (
+            <li key={index}>{ingredient}</li>
+          ))}
+        </ul>
+      </div>
+      <div>
+        <h2 className="text-2xl font-bold mb-2">Instruktioner</h2>
+        <ol>
+          {recept.instructions.map((instruction, index) => (
+            <li key={index}>
+              {index + 1}: {instruction}
+            </li>
+          ))}
+        </ol>
+      </div>
     </div>
   );
 };
