@@ -7,6 +7,7 @@ interface IRecipe extends Document {
   ingredients: string[];
   instructions?: string[];
   image: string; // Uppdatera till strängtyp för att lagra bild-URL
+  source_image: string; // Uppdatera till
   createdAt: Date;
 }
 
@@ -18,6 +19,7 @@ const recipeSchema: Schema = new Schema({
   instructions: { type: [String] },
   createdAt: { type: Date, default: Date.now },
   image: { type: String }, // Sätt typen till sträng
+  source_image: { type: String },
 });
 
 const Recipe = mongoose.model<IRecipe>("Recipe", recipeSchema);

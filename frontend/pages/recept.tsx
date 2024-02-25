@@ -5,6 +5,7 @@ import Footer from "@/app/components/Footer";
 
 // Typdefinitioner (anpassa dessa baserat på din datastruktur)
 type Recept = {
+  [x: string]: ReactNode;
   _id: string;
   name: string;
   description: string;
@@ -43,6 +44,7 @@ const ReceptPage = ({ recept }: { recept: Recept[] }) => {
                 {recept.name}
               </h2>
               <img src={recept.image} alt="" />
+              <p className="text-black">Källa: {recept.source_image}</p>
               <p className="text-gray-700 mb-4">{recept.description}</p>
               <div className="mb-4">
                 <h3 className="font-semibold underline text-black">
