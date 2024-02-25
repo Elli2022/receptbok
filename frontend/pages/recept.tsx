@@ -1,5 +1,5 @@
 //pages/recept.tsx
-import React from "react";
+import React, { ReactNode } from "react";
 import Navbar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
 
@@ -44,7 +44,9 @@ const ReceptPage = ({ recept }: { recept: Recept[] }) => {
                 {recept.name}
               </h2>
               <img src={recept.image} alt="" />
-              <p className="text-black">Källa: {recept.source_image}</p>
+              <p className="text-black">
+                Bild lånad från: {recept.source_image}
+              </p>
               <p className="text-gray-700 mb-4">{recept.description}</p>
               <div className="mb-4">
                 <h3 className="font-semibold underline text-black">
