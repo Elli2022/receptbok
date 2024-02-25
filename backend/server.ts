@@ -1,6 +1,7 @@
 //backend/server.ts
 // dotenv kongifuarion i toppen av filen för att säkerställa att miljövariablerna från .env laddas innan de används
 // Importera nödvändiga moduler och typer
+
 import dotenv from "dotenv";
 import express, { Request, Response } from "express";
 import mongoose from "mongoose";
@@ -8,9 +9,11 @@ import mongoose from "mongoose";
 // Konfigurera dotenv för att ladda miljövariabler från .env-filen
 dotenv.config();
 
+const cors = require("cors");
 const app = express();
 const port = process.env.PORT || 3001;
 
+app.use(cors());
 app.use(express.json()); // Middleware för att tolka JSON
 
 // Anslut till MongoDB med Mongoose
@@ -24,8 +27,8 @@ app.get("/", (req: Request, res: Response) => {
   res.send("Välkommen till min receptbok backend!");
 });
 
-// Importera och använd recept-routes
-import recipesRouter from "./routes/recipe"; // Ändra './routes/recipe' till korrekt sökväg baserat på din filstruktur
+// Importerar och använder recept-routes
+import recipesRouter from "./routes/recipe";
 app.use("/recipes", recipesRouter);
 
 // Starta servern

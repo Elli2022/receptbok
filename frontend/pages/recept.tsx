@@ -2,6 +2,7 @@
 import React, { ReactNode } from "react";
 import Navbar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
+import Link from "next/link";
 
 // Typdefinitioner (anpassa dessa baserat på din datastruktur)
 type Recept = {
@@ -34,48 +35,20 @@ const ReceptPage = ({ recept }: { recept: Recept[] }) => {
     <div className="max-w-8xl mx-auto px-4 py-8">
       <Navbar />
       <h1 className="text-4xl font-bold text-center mb-8">Recept</h1>
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {recept.map((recept) => (
-          <div
-            key={recept._id}
-            className="bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 ease-in-out"
-          >
-            <div className="p-6">
-              <h2 className="text-4xl font-bold mb-2 text-black">
-                {recept.name}
-              </h2>
-              <img src={recept.image} alt="" />
-              <p className="text-black">
-                Bild lånad från: {recept.source_image}
-              </p>
-
-              <p className="text-gray-700 mb-4">{recept.description}</p>
-              <h3 className="font-semibold underline text-black">Portioner:</h3>
-              <p className="whitespace-pre-line text-gray-600">
-                {recept.portions}
-              </p>
-              <div className="mb-4">
-                <h3 className="font-semibold underline text-black">
-                  Ingredienser:
-                </h3>
-                <ul className="list-disc pl-5">
-                  {recept.ingredients.map((ingredient, index) => (
-                    <li key={index} className="text-gray-600">
-                      {ingredient}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h3 className="font-semibold underline text-black">
-                  Instruktioner:
-                </h3>
-                <p className="whitespace-pre-line text-gray-600">
-                  {recept.instructions}
-                </p>
+          <Link key={recept._id} href={`/recept/${recept._id}`} passHref>
+            <div className="text-black bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 ease-in-out cursor-pointer">
+              <img
+                src={recept.image}
+                alt={recept.name}
+                className="w-full h-64 object-cover"
+              />
+              <div className="p-6">
+                <h2 className="text-2xl font-bold mb-2">{recept.name}</h2>
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
       <Footer />

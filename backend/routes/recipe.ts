@@ -63,4 +63,16 @@ router.delete("/:id", async (req: Request, res: Response) => {
   }
 });
 
+router.get("/:id", async (req: Request, res: Response) => {
+  try {
+    const recipe = await Recipe.findById(req.params.id);
+    if (!recipe) {
+      return res.status(404).json({ message: "Receptet hittades inte." });
+    }
+    res.json(recipe);
+  } catch (error) {
+    res.status(500).json({ message: (error as Error).message });
+  }
+});
+
 export default router;
