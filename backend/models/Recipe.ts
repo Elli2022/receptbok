@@ -1,3 +1,4 @@
+//backend/models/Recipe.ts
 import mongoose, { Schema, Document } from "mongoose";
 
 interface IRecipe extends Document {
