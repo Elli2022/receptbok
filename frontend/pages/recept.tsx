@@ -8,6 +8,7 @@ type Recept = {
   [x: string]: ReactNode;
   _id: string;
   name: string;
+  portions: number;
   description: string;
   ingredients: string[];
   instructions: string;
@@ -47,7 +48,12 @@ const ReceptPage = ({ recept }: { recept: Recept[] }) => {
               <p className="text-black">
                 Bild lånad från: {recept.source_image}
               </p>
+
               <p className="text-gray-700 mb-4">{recept.description}</p>
+              <h3 className="font-semibold underline text-black">Portioner:</h3>
+              <p className="whitespace-pre-line text-gray-600">
+                {recept.portions}
+              </p>
               <div className="mb-4">
                 <h3 className="font-semibold underline text-black">
                   Ingredienser:
