@@ -41,6 +41,7 @@ const ReceptDetalj = () => {
       <h1 className="text-4xl font-bold mb-4">{recept.name}</h1>
       <img src={recept.image} alt={recept.name} />
       <p>{recept.description}</p>
+      <br />
       <div>
         <h2 className="text-2xl font-bold mb-2">Ingredienser</h2>
         <ul>
@@ -49,15 +50,20 @@ const ReceptDetalj = () => {
           ))}
         </ul>
       </div>
+      <br />
       <div>
         <h2 className="text-2xl font-bold mb-2">Instruktioner</h2>
-        <ol>
+        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
           {recept.instructions.map((instruction, index) => (
-            <li key={index}>
-              {index + 1}: {instruction}
-            </li>
+            <label
+              key={index}
+              style={{ display: "flex", alignItems: "center", gap: "10px" }}
+            >
+              <input type="checkbox" />
+              {instruction}
+            </label>
           ))}
-        </ol>
+        </div>
       </div>
     </div>
   );
