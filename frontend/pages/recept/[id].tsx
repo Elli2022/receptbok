@@ -1,5 +1,6 @@
 import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
+import Navbar from "@/app/components/Navbar";
 
 // Definierar en typ för att matcha min receptdata (Interface för Recept)
 interface Recept {
@@ -38,6 +39,7 @@ const ReceptDetalj = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <Navbar />
       <h1 className="text-4xl font-bold mb-4">{recept.name}</h1>
       <img src={recept.image} alt={recept.name} />
       <p>{recept.description}</p>
