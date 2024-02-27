@@ -3,7 +3,7 @@ import React from "react";
 
 const Footer = () => {
   return (
-    <footer className="text-center py-2 mt-4">
+    <footer className="text-center py-2 mt-4 justify-center items-center text-center">
       <div className="flex flex-col sm:flex-row justify-center items-center space-y-2 sm:space-y-0 sm:space-x-2 mb-6 relative z-10">
         <a
           href="mailto:eleonora.nocentini@gmail.com"

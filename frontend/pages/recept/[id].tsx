@@ -1,6 +1,7 @@
 import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
 import Navbar from "@/app/components/Navbar";
+import Footer from "@/app/components/Footer";
 
 // Definierar en typ för att matcha min receptdata (Interface för Recept)
 interface Recept {
@@ -10,6 +11,7 @@ interface Recept {
   image: string;
   ingredients: string[];
   instructions: string[];
+  source_image: string;
 }
 
 const ReceptDetalj = () => {
@@ -18,7 +20,7 @@ const ReceptDetalj = () => {
   const [recept, setRecept] = useState<Recept | null>(null);
   const [checkedStates, setCheckedStates] = useState<{
     [index: number]: boolean;
-  }>({}); // Lägg till detta
+  }>({});
 
   useEffect(() => {
     const fetchRecept = async () => {
@@ -61,6 +63,7 @@ const ReceptDetalj = () => {
       <Navbar />
       <h1 className="text-4xl font-bold mb-4">{recept.name}</h1>
       <img src={recept.image} alt={recept.name} />
+      <p>Bild lånad från: {recept.source_image}</p>
       <p>{recept.description}</p>
       <br />
       <div>
@@ -95,6 +98,7 @@ const ReceptDetalj = () => {
           ))}
         </div>
       </div>
+      <Footer />
     </div>
   );
 };
