@@ -9,9 +9,10 @@ interface Recept {
   name: string;
   description: string;
   image: string;
+  source_image: string;
+  portions: string;
   ingredients: string[];
   instructions: string[];
-  source_image: string;
 }
 
 const ReceptDetalj = () => {
@@ -64,7 +65,10 @@ const ReceptDetalj = () => {
       <h1 className="text-4xl font-bold mb-4">{recept.name}</h1>
       <img src={recept.image} alt={recept.name} />
       <p>Bild lånad från: {recept.source_image}</p>
+      <br />
       <p>{recept.description}</p>
+      <br />
+      <p>Portioner:{recept.portions}</p>
       <br />
       <div>
         <h2 className="text-2xl font-bold mb-2">Ingredienser</h2>
