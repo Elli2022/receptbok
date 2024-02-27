@@ -72,12 +72,21 @@ const ReceptDetalj = () => {
       <br />
       <div>
         <h2 className="text-2xl font-bold mb-2">Ingredienser</h2>
-        <ul>
+        <ul style={{ listStyleType: "none", paddingLeft: "0" }}>
           {recept.ingredients.map((ingredient, index) => (
-            <li key={index}>{ingredient}</li>
+            <li
+              key={index}
+              style={{ paddingLeft: "20px", position: "relative" }}
+            >
+              <span style={{ position: "absolute", left: "0", color: "white" }}>
+                &bull;
+              </span>
+              {ingredient}
+            </li>
           ))}
         </ul>
       </div>
+
       <br />
       <div>
         <h2 className="text-2xl font-bold mb-2">Instruktioner</h2>
