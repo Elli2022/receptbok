@@ -16,6 +16,9 @@ const ReceptDetalj = () => {
   const router = useRouter();
   const { id } = router.query;
   const [recept, setRecept] = useState<Recept | null>(null);
+  const [checkedStates, setCheckedStates] = useState<{
+    [index: number]: boolean;
+  }>({}); // Lägg till detta
 
   useEffect(() => {
     const fetchRecept = async () => {
@@ -26,6 +29,15 @@ const ReceptDetalj = () => {
           );
           const data: Recept = await response.json();
           setRecept(data);
+          // Initiera checkedStates baserat på antalet instruktioner
+          const initialState = data.instructions.reduce(
+            (acc, _, index) => ({
+              ...acc,
+              [index]: false,
+            }),
+            {}
+          );
+          setCheckedStates(initialState);
         } catch (error) {
           console.error("Kunde inte hämta recept", error);
         }
@@ -34,6 +46,13 @@ const ReceptDetalj = () => {
 
     fetchRecept();
   }, [id]);
+
+  const handleCheckboxChange = (index: number) => {
+    setCheckedStates((prevStates) => ({
+      ...prevStates,
+      [index]: !prevStates[index], // Växlar värdet för givet index
+    }));
+  };
 
   if (!recept) return <p>Laddar...</p>;
 
@@ -59,9 +78,18 @@ const ReceptDetalj = () => {
           {recept.instructions.map((instruction, index) => (
             <label
               key={index}
-              style={{ display: "flex", alignItems: "center", gap: "10px" }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                color: checkedStates[index] ? "gray" : "inherit", // Korrekt konditionell styling
+              }}
             >
-              <input type="checkbox" />
+              <input
+                type="checkbox"
+                checked={checkedStates[index] || false} // Kontrollerar checkboxens tillstånd
+                onChange={() => handleCheckboxChange(index)} // Uppdaterar tillståndet vid ändring
+              />
               {instruction}
             </label>
           ))}
