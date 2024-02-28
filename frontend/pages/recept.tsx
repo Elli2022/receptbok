@@ -36,13 +36,19 @@ const ReceptPage = ({ recept }: Props) => {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [ingredientFilter, setIngredientFilter] = useState("");
 
+  useEffect(() => {
+    // Uppdatera när komponenten mottar nya 'recept' via props
+    setFilteredRecept(recept);
+  }, [recept]);
+
   // Uppdatera filtrerade recept baserat på sökterm
   useEffect(() => {
     let result = recept;
 
     if (categoryFilter) {
       result = result.filter(
-        (receptItem) => receptItem.category === categoryFilter
+        (receptItem) =>
+          receptItem.category.toLowerCase() === categoryFilter.toLowerCase()
       );
     }
 
