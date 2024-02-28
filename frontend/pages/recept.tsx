@@ -67,6 +67,7 @@ const ReceptPage = ({ recept }: Props) => {
     <div className="max-w-8xl mx-auto px-4 py-8">
       <Navbar />
       <h1 className="text-4xl font-bold text-center mb-8">Recept</h1>
+
       {/* Sökfält */}
       <input
         type="text"
@@ -83,15 +84,31 @@ const ReceptPage = ({ recept }: Props) => {
         className="mb-4 p-2 text-black"
       />
 
-      <div>
-        <button onClick={() => setCategoryFilter("förrätt")}>Förrätter</button>
-        <button onClick={() => setCategoryFilter("huvudrätt")}>
+      <div className="flex flex-wrap gap-4 justify-center mb-8">
+        <button
+          className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700"
+          onClick={() => setCategoryFilter("förrätt")}
+        >
+          Förrätter
+        </button>
+        <button
+          className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700"
+          onClick={() => setCategoryFilter("huvudrätt")}
+        >
           Huvudrätter
         </button>
-        <button onClick={() => setCategoryFilter("efterrätt")}>
+        <button
+          className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700"
+          onClick={() => setCategoryFilter("efterrätt")}
+        >
           Efterrätter
         </button>
-        <button onClick={() => setCategoryFilter("")}>Alla Kategorier</button>
+        <button
+          className="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-700"
+          onClick={() => setCategoryFilter("")}
+        >
+          Alla Kategorier
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
