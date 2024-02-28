@@ -8,6 +8,7 @@ type Recept = {
   [x: string]: ReactNode;
   _id: string;
   name: string;
+  category: string;
   portions: number;
   description: string;
   ingredients: string[];
@@ -32,16 +33,35 @@ const ReceptPage = ({ recept }: Props) => {
   // Söktillstånd
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredRecept, setFilteredRecept] = useState<Recept[]>([]);
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [ingredientFilter, setIngredientFilter] = useState("");
 
   // Uppdatera filtrerade recept baserat på sökterm
   useEffect(() => {
-    if (recept) {
-      const result = recept.filter((receptItem) =>
+    let result = recept;
+
+    if (categoryFilter) {
+      result = result.filter(
+        (receptItem) => receptItem.category === categoryFilter
+      );
+    }
+
+    if (ingredientFilter) {
+      result = result.filter((receptItem) =>
+        receptItem.ingredients.some((ingredient) =>
+          ingredient.toLowerCase().includes(ingredientFilter.toLowerCase())
+        )
+      );
+    }
+
+    if (searchTerm) {
+      result = result.filter((receptItem) =>
         receptItem.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
-      setFilteredRecept(result);
     }
-  }, [searchTerm, recept]);
+
+    setFilteredRecept(result);
+  }, [searchTerm, categoryFilter, ingredientFilter, recept]);
 
   return (
     <div className="max-w-8xl mx-auto px-4 py-8">
@@ -55,6 +75,25 @@ const ReceptPage = ({ recept }: Props) => {
         placeholder="Sök efter recept..."
         className="mb-4 p-2 w-full text-black"
       />
+      <input
+        type="text"
+        value={ingredientFilter}
+        onChange={(e) => setIngredientFilter(e.target.value)}
+        placeholder="Filtrera efter ingrediens..."
+        className="mb-4 p-2 text-black"
+      />
+
+      <div>
+        <button onClick={() => setCategoryFilter("förrätt")}>Förrätter</button>
+        <button onClick={() => setCategoryFilter("huvudrätt")}>
+          Huvudrätter
+        </button>
+        <button onClick={() => setCategoryFilter("efterrätt")}>
+          Efterrätter
+        </button>
+        <button onClick={() => setCategoryFilter("")}>Alla Kategorier</button>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredRecept.map((receptItem) => (
           <Link

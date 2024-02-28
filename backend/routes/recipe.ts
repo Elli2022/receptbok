@@ -20,6 +20,7 @@ router.post("/", async (req: Request, res: Response) => {
     portions: req.body.portions,
     ingredients: req.body.ingredients,
     instructions: req.body.instructions,
+    category: req.body.category,
     image: req.body.image, // Sparar bild-URLen
     source_image: req.body.source_image,
   });

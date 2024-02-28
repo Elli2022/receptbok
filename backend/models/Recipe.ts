@@ -6,6 +6,7 @@ interface IRecipe extends Document {
   description?: string;
   portions?: number;
   ingredients: string[];
+  category?: string;
   instructions?: string[];
   image: string; // Uppdatera till strängtyp för att lagra bild-URL
   source_image: string; // Uppdatera till
@@ -16,6 +17,7 @@ const recipeSchema: Schema = new Schema({
   name: { type: String, required: true },
   description: { type: String },
   portions: { type: Number },
+  category: { type: String },
   ingredients: { type: [String], required: true },
   instructions: { type: [String] },
   createdAt: { type: Date, default: Date.now },

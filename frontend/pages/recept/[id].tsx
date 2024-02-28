@@ -8,6 +8,7 @@ interface Recept {
   _id: string;
   name: string;
   description: string;
+  category: string;
   image: string;
   source_image: string;
   portions: string;
@@ -68,6 +69,7 @@ const ReceptDetalj = () => {
       <br />
       <p>{recept.description}</p>
       <br />
+      <p>Kategori: {recept.category}</p>
       <p>Portioner:{recept.portions}</p>
       <br />
       <div>
