@@ -9,7 +9,7 @@ const AboutPage = () => {
     <>
       <Navbar />
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-4">Om Oss</h1>
+        <h1 className="text-2xl font-bold mb-4">Om Mig</h1>
         <p>
           Jag ville skapa en receptblogg där stegen var utförliga, lättlästa och
           där ingredienserna kommer i den ordningen som de ska användas i
@@ -17,7 +17,6 @@ const AboutPage = () => {
           ha mina gluten- och nötfria recept samlade både på recept.se,
           instagram, facebook, en receptbok i pappersformat etc.
         </p>
-        {/* Andra innehållselement här */}
       </div>
       <Footer />
     </>

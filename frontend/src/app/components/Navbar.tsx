@@ -19,7 +19,7 @@ const Navbar = () => {
         </li>
         <li style={{ display: "inline" }}>
           <Link href="/about" style={{ textDecoration: "none" }}>
-            Om Oss
+            Om Mig
           </Link>
         </li>
       </ul>
