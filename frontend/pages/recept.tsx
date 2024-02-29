@@ -74,14 +74,14 @@ const ReceptPage = ({ recept }: Props) => {
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         placeholder="Sök efter recept..."
-        className="mb-4 p-2 w-full text-black"
+        className="mb-4 p-2 w-full text-black rounded-full"
       />
       <input
         type="text"
         value={ingredientFilter}
         onChange={(e) => setIngredientFilter(e.target.value)}
         placeholder="Filtrera efter ingrediens..."
-        className="mb-4 p-2 text-black"
+        className="mb-4 p-2 text-black rounded-full"
       />
 
       {/* Hero Sektion med Bakgrundsbild */}
