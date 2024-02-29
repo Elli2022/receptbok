@@ -84,6 +84,24 @@ const ReceptPage = ({ recept }: Props) => {
         className="mb-4 p-2 text-black"
       />
 
+      {/* Hero Sektion med Bakgrundsbild */}
+      <div
+        className="hero mb-8 p-20 text-white rounded"
+        style={{
+          backgroundImage: `url('/images/heroImageLandingPage.jpg')`,
+          backgroundSize: "cover",
+          backgroundPosition: "center full-width",
+        }}
+      >
+        <h2 className="text-3xl font-bold text-center">
+          Välkommen till vårt receptbibliotek!
+        </h2>
+        <p className="text-xl text-center">
+          Hitta dina favoritrecept eller upptäck nya spännande rätter att prova
+          på.
+        </p>
+      </div>
+
       <div className="flex flex-wrap gap-4 justify-center mb-8">
         <button
           className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700"
