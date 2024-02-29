@@ -4,14 +4,17 @@ import Footer from "./components/Footer";
 
 export default function Home() {
   return (
-    <div>
+    <div className="max-w-8xl mx-auto px-4 py-8">
       <Navbar />
-      <div className="relative bg-gray-300 h-96">
-        <img
-          src="/images/heroImageLandingPage.jpg"
-          alt="Hero"
-          className="absolute w-full h-full"
-        />{" "}
+      {/* Hero Sektion med Bakgrundsbild */}
+      <div
+        className="hero mb-8 p-20 text-white"
+        style={{
+          backgroundImage: `url('/images/heroImageLandingPage.jpg')`,
+          backgroundSize: "cover",
+          backgroundPosition: "center full-width",
+        }}
+      >
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-full max-w-md p-4 bg-white bg-opacity-90 rounded">
             <input
