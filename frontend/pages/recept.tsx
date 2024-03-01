@@ -1,12 +1,11 @@
 //frontend/pages/recept.tsx
-import React, { ReactNode, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Navbar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
 import Link from "next/link";
 
-// Typdefinitioner (anpassa dessa baserat på din datastruktur)
+// Typdefinitioner
 type Recept = {
-  [x: string]: ReactNode;
   _id: string;
   name: string;
   category: string;
@@ -21,7 +20,9 @@ type Props = {
   recept: Recept[];
 };
 
+// Hämta recept från servern
 export async function getServerSideProps() {
+  // Ersätt `${process.env.NEXT_PUBLIC_BACKEND_URL}/recipes` med din faktiska URL
   const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/recipes`);
   const recept = await res.json();
 
@@ -31,38 +32,25 @@ export async function getServerSideProps() {
 }
 
 const ReceptPage = ({ recept }: Props) => {
-  // Söktillstånd
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredRecept, setFilteredRecept] = useState<Recept[]>([]);
-  const [categoryFilter, setCategoryFilter] = useState("");
-  const [ingredientFilter, setIngredientFilter] = useState("");
 
-  // Uppdatera filtrerade recept baserat på sökterm
   useEffect(() => {
-    let result = recept;
+    const filterRecept = recept.filter((receptItem) => {
+      // Förbered söksträngar för jämförelse
+      const searchTermLower = searchTerm.toLowerCase();
+      const ingredientsString = receptItem.ingredients.join(" ").toLowerCase();
 
-    if (categoryFilter) {
-      result = result.filter(
-        (receptItem) => receptItem.category === categoryFilter
+      // Sökning baserat på namn, ingredienser eller kategori
+      return (
+        receptItem.name.toLowerCase().includes(searchTermLower) ||
+        ingredientsString.includes(searchTermLower) ||
+        receptItem.category.toLowerCase().includes(searchTermLower)
       );
-    }
+    });
 
-    if (ingredientFilter) {
-      result = result.filter((receptItem) =>
-        receptItem.ingredients.some((ingredient) =>
-          ingredient.toLowerCase().includes(ingredientFilter.toLowerCase())
-        )
-      );
-    }
-
-    if (searchTerm) {
-      result = result.filter((receptItem) =>
-        receptItem.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    setFilteredRecept(result);
-  }, [searchTerm, categoryFilter, ingredientFilter, recept]);
+    setFilteredRecept(filterRecept);
+  }, [searchTerm, recept]);
 
   return (
     <div className="max-w-8xl mx-auto px-4 py-8">
@@ -74,24 +62,17 @@ const ReceptPage = ({ recept }: Props) => {
         type="text"
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        placeholder="Sök efter recept..."
+        placeholder="Sök efter receptnamn, ingredienser eller kategori..."
         className="mb-4 p-2 w-full text-black rounded-full"
       />
-      <input
-        type="text"
-        value={ingredientFilter}
-        onChange={(e) => setIngredientFilter(e.target.value)}
-        placeholder="Filtrera efter ingrediens..."
-        className="mb-4 p-2 text-black rounded-full"
-      />
 
-      {/* Hero Sektion med Bakgrundsbild */}
+      {/* Hero sektion */}
       <div
         className="hero mb-8 p-20 text-white rounded"
         style={{
           backgroundImage: `url('/images/heroImageLandingPage.jpg')`,
           backgroundSize: "cover",
-          backgroundPosition: "center full-width",
+          backgroundPosition: "center",
         }}
       >
         <h2 className="text-3xl font-bold text-center">
@@ -103,33 +84,7 @@ const ReceptPage = ({ recept }: Props) => {
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-4 justify-center mb-8">
-        <button
-          className="bg-blue-500 text-white py-2 px-4 rounded-full hover:bg-blue-700"
-          onClick={() => setCategoryFilter("förrätt")}
-        >
-          Förrätter
-        </button>
-        <button
-          className="bg-blue-500 text-white py-2 px-4 rounded-full hover:bg-blue-700"
-          onClick={() => setCategoryFilter("huvudrätt")}
-        >
-          Huvudrätter
-        </button>
-        <button
-          className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700"
-          onClick={() => setCategoryFilter("efterrätt")}
-        >
-          Efterrätter
-        </button>
-        <button
-          className="bg-gray-500 text-white py-2 px-4 rounded-full hover:bg-gray-700"
-          onClick={() => setCategoryFilter("")}
-        >
-          Alla Kategorier
-        </button>
-      </div>
-
+      {/* Receptkort */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredRecept.map((receptItem) => (
           <Link
@@ -145,6 +100,7 @@ const ReceptPage = ({ recept }: Props) => {
               />
               <div className="p-6">
                 <h2 className="text-2xl font-bold mb-2">{receptItem.name}</h2>
+                {/* Eventuell ytterligare information om receptet */}
               </div>
             </div>
           </Link>
