@@ -1,3 +1,4 @@
+//frontend/src/app/page.tsx
 import React from "react";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -30,7 +31,7 @@ export default function Home() {
         <h2 className="text-2xl font-bold text-center">Populära Kategorier</h2>
         <div className="flex justify-center space-x-4 my-4">
           {/* Kategoriknappar eller taggar går här */}
-          <button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+          <button className="bg-blue-500 text-white px-4 py-2 rounded-full hover:bg-blue-600">
             Pasta
           </button>
           {/* Fler knappar för andra kategorier */}

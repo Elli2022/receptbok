@@ -1,12 +1,12 @@
 //backend/server.ts
 // dotenv kongifuarion i toppen av filen för att säkerställa att miljövariablerna från .env laddas innan de används
-// Importera nödvändiga moduler och typer
+// Importerar nödvändiga moduler och typer
 
 import dotenv from "dotenv";
 import express, { Request, Response } from "express";
 import mongoose from "mongoose";
 
-// Konfigurera dotenv för att ladda miljövariabler från .env-filen
+// Konfigurerar dotenv för att ladda miljövariabler från .env-filen
 dotenv.config();
 
 const cors = require("cors");
@@ -16,7 +16,7 @@ const port = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json()); // Middleware för att tolka JSON
 
-// Anslut till MongoDB med Mongoose
+// Ansluter till MongoDB med Mongoose
 mongoose
   .connect(process.env.DATABASE_URL!)
   .then(() => console.log("Connected to MongoDB Atlas"))
@@ -31,7 +31,7 @@ app.get("/", (req: Request, res: Response) => {
 import recipesRouter from "./routes/recipe";
 app.use("/recipes", recipesRouter);
 
-// Starta servern
+// Startar servern
 app.listen(port, () => {
   console.log(`Servern körs på port ${port}`);
 });

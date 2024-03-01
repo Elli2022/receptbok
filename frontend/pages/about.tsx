@@ -1,15 +1,13 @@
-// pages/about.tsx
 import React from "react";
 import Navbar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
-import Link from "next/link";
 
 const AboutPage = () => {
   return (
     <>
       <Navbar />
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-4">Om Mig</h1>
+        <h1 className="text-2xl font-bold mb-4">Om Oss</h1>
         <p>
           Jag ville skapa en receptblogg där stegen var utförliga, lättlästa och
           där ingredienserna kommer i den ordningen som de ska användas i

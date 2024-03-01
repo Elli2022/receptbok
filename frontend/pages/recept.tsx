@@ -1,3 +1,4 @@
+//frontend/pages/recept.tsx
 import React, { ReactNode, useEffect, useState } from "react";
 import Navbar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
@@ -104,13 +105,13 @@ const ReceptPage = ({ recept }: Props) => {
 
       <div className="flex flex-wrap gap-4 justify-center mb-8">
         <button
-          className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700"
+          className="bg-blue-500 text-white py-2 px-4 rounded-full hover:bg-blue-700"
           onClick={() => setCategoryFilter("förrätt")}
         >
           Förrätter
         </button>
         <button
-          className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700"
+          className="bg-blue-500 text-white py-2 px-4 rounded-full hover:bg-blue-700"
           onClick={() => setCategoryFilter("huvudrätt")}
         >
           Huvudrätter
@@ -122,7 +123,7 @@ const ReceptPage = ({ recept }: Props) => {
           Efterrätter
         </button>
         <button
-          className="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-700"
+          className="bg-gray-500 text-white py-2 px-4 rounded-full hover:bg-gray-700"
           onClick={() => setCategoryFilter("")}
         >
           Alla Kategorier
