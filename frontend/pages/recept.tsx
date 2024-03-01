@@ -20,9 +20,8 @@ type Props = {
   recept: Recept[];
 };
 
-// Hämta recept från servern
+// Hämtar recept från servern
 export async function getServerSideProps() {
-  // Ersätt `${process.env.NEXT_PUBLIC_BACKEND_URL}/recipes` med din faktiska URL
   const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/recipes`);
   const recept = await res.json();
 
@@ -93,14 +92,15 @@ const ReceptPage = ({ recept }: Props) => {
             passHref
           >
             <div className="text-black bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 ease-in-out cursor-pointer">
-              <img
-                src={receptItem.image}
-                alt={receptItem.name}
-                className="w-full h-64 object-cover"
-              />
+              <div className="w-full h-64 object-cover transition-transform duration-300 ease-in-out hover:scale-110">
+                <img
+                  src={receptItem.image}
+                  alt={receptItem.name}
+                  className="w-full h-64 object-cover"
+                />
+              </div>
               <div className="p-6">
                 <h2 className="text-2xl font-bold mb-2">{receptItem.name}</h2>
-                {/* Eventuell ytterligare information om receptet */}
               </div>
             </div>
           </Link>
