@@ -14,6 +14,11 @@ const Navbar = () => {
             </Link>
           </li>
           <li style={{ display: "inline", marginRight: "20px" }}>
+            <Link href="/register" style={{ textDecoration: "none" }}>
+              Registrera
+            </Link>
+          </li>
+          <li style={{ display: "inline", marginRight: "20px" }}>
             <Link href="/recept" style={{ textDecoration: "none" }}>
               Recept
             </Link>
