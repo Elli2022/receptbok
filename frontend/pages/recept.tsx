@@ -1,4 +1,3 @@
-// frontend/pages/recept.tsx
 import React, { useEffect, useState } from "react";
 import Navbar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
@@ -50,12 +49,14 @@ const ReceptPage = ({ recept }: Props) => {
     if (Array.isArray(recept)) {
       const filterRecept = recept.filter((receptItem) => {
         const searchTermLower = searchTerm.toLowerCase();
+        const name = receptItem.name ? receptItem.name.toLowerCase() : "";
+        const category = receptItem.category ? receptItem.category.toLowerCase() : "";
         const ingredientsString = receptItem.ingredients.join(" ").toLowerCase();
 
         return (
-          receptItem.name.toLowerCase().includes(searchTermLower) ||
+          name.includes(searchTermLower) ||
           ingredientsString.includes(searchTermLower) ||
-          receptItem.category.toLowerCase().includes(searchTermLower)
+          category.includes(searchTermLower)
         );
       });
 
