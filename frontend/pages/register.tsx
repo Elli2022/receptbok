@@ -1,8 +1,5 @@
-//frontend/pages/register.tsx
-
 import React, { useState } from "react";
 import axios from "axios";
-import
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -37,55 +34,56 @@ const Register = () => {
         console.error("An unknown error occurred");
       }
     }
-
-    return (
-      <div>
-        <h1>Registrera dig</h1>
-        <form onSubmit={(e) => onSubmit(e)}>
-          <div>
-            <label>Namn</label>
-            <input
-              type="text"
-              name="name"
-              value={name}
-              onChange={(e) => onChange(e)}
-              required
-            />
-          </div>
-          <div>
-            <label>Användarnamn</label>
-            <input
-              type="text"
-              name="username"
-              value={username}
-              onChange={(e) => onChange(e)}
-              required
-            />
-          </div>
-          <div>
-            <label>E-post</label>
-            <input
-              type="email"
-              name="email"
-              value={email}
-              onChange={(e) => onChange(e)}
-              required
-            />
-          </div>
-          <div>
-            <label>Lösenord</label>
-            <input
-              type="password"
-              name="password"
-              value={password}
-              onChange={(e) => onChange(e)}
-              required
-            />
-          </div>
-          <button type="submit">Register</button>
-        </form>
-      </div>
-    );
   };
+
+  return (
+    <div>
+      <h1>Registrera dig</h1>
+      <form onSubmit={(e) => onSubmit(e)}>
+        <div>
+          <label>Namn</label>
+          <input
+            type="text"
+            name="name"
+            value={name}
+            onChange={(e) => onChange(e)}
+            required
+          />
+        </div>
+        <div>
+          <label>Användarnamn</label>
+          <input
+            type="text"
+            name="username"
+            value={username}
+            onChange={(e) => onChange(e)}
+            required
+          />
+        </div>
+        <div>
+          <label>E-post</label>
+          <input
+            type="email"
+            name="email"
+            value={email}
+            onChange={(e) => onChange(e)}
+            required
+          />
+        </div>
+        <div>
+          <label>Lösenord</label>
+          <input
+            type="password"
+            name="password"
+            value={password}
+            onChange={(e) => onChange(e)}
+            required
+          />
+        </div>
+        <button type="submit">Register</button>
+      </form>
+    </div>
+  );
 };
+
 export default Register;

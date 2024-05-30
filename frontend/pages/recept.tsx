@@ -22,12 +22,24 @@ type Props = {
 
 // Hämtar recept från servern
 export async function getServerSideProps() {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/recipes`);
-  const recept = await res.json();
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/recipes`);
+    const recept = await res.json();
+    
+    // Kontrollera att recept är en array
+    if (!Array.isArray(recept)) {
+      throw new Error("API response is not an array");
+    }
 
-  return {
-    props: { recept },
-  };
+    return {
+      props: { recept },
+    };
+  } catch (error) {
+    console.error("Error fetching recipes:", error);
+    return {
+      props: { recept: [] }, // Returnera en tom array vid fel
+    };
+  }
 }
 
 const ReceptPage = ({ recept }: Props) => {
@@ -35,20 +47,24 @@ const ReceptPage = ({ recept }: Props) => {
   const [filteredRecept, setFilteredRecept] = useState<Recept[]>([]);
 
   useEffect(() => {
-    const filterRecept = recept.filter((receptItem) => {
-      // Förbered söksträngar för jämförelse
-      const searchTermLower = searchTerm.toLowerCase();
-      const ingredientsString = receptItem.ingredients.join(" ").toLowerCase();
+    if (Array.isArray(recept)) {
+      const filterRecept = recept.filter((receptItem) => {
+        // Förbered söksträngar för jämförelse
+        const searchTermLower = searchTerm.toLowerCase();
+        const ingredientsString = receptItem.ingredients.join(" ").toLowerCase();
 
-      // Sökning baserat på namn, ingredienser eller kategori
-      return (
-        receptItem.name.toLowerCase().includes(searchTermLower) ||
-        ingredientsString.includes(searchTermLower) ||
-        receptItem.category.toLowerCase().includes(searchTermLower)
-      );
-    });
+        // Sökning baserat på namn, ingredienser eller kategori
+        return (
+          receptItem.name.toLowerCase().includes(searchTermLower) ||
+          ingredientsString.includes(searchTermLower) ||
+          receptItem.category.toLowerCase().includes(searchTermLower)
+        );
+      });
 
-    setFilteredRecept(filterRecept);
+      setFilteredRecept(filterRecept);
+    } else {
+      console.error("recept is not an array");
+    }
   }, [searchTerm, recept]);
 
   return (
