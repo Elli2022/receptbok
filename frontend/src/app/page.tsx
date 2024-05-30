@@ -1,4 +1,3 @@
-//frontend/src/app/page.tsx
 import React from "react";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -21,7 +20,7 @@ export default function Home() {
             <input
               type="text"
               placeholder="Sök recept, ingredienser..."
-              className="w-full p-2 border border-gray-300 rounded"
+              className="w-full p-2 border border-gray-300 rounded text-black" // Lägg till text-black här
             />
           </div>
         </div>
