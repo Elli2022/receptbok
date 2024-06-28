@@ -109,6 +109,8 @@ const ReceptPage = ({ recept }: Props) => {
       });
   
       const imageUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/images/${uploadResponse.data.file.filename}`;
+      console.log('Image URL:', imageUrl); // Log URL
+  
       const recipeToSend = {
         ...newRecipe,
         ingredients: newRecipe.ingredients.split(',').map(ingredient => ingredient.trim()),
@@ -116,7 +118,10 @@ const ReceptPage = ({ recept }: Props) => {
       };
   
       const response = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/recipes`, recipeToSend);
-      console.log('Receptet har sparats:', response.data);
+      console.log('Receptet har sparats:', response.data); // Log response data
+  
+      // Lägg till det nya receptet till listan så att det visas omedelbart
+      setFilteredRecept([...filteredRecept, response.data]);
     } catch (error) {
       if (axios.isAxiosError(error)) {
         console.error('Det gick inte att spara receptet:', error.message);
@@ -127,9 +132,6 @@ const ReceptPage = ({ recept }: Props) => {
     }
   };
   
-  
-  
-
   return (
     <div className="max-w-8xl mx-auto px-4 py-8">
       <Navbar />
@@ -229,7 +231,7 @@ const ReceptPage = ({ recept }: Props) => {
           <Link key={receptItem._id} href={`/recept/${receptItem._id}`} passHref>
             <div className="text-black bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 ease-in-out cursor-pointer">
               <div className="w-full h-64 object-cover transition-transform duration-300 ease-in-out hover:scale-110">
-                <img src={receptItem.image} alt={receptItem.name} className="w-full h-64 object-cover" />
+                <img src={receptItem.image} alt={receptItem.name} className="w-full h-64 object-cover" onError={(e) => e.currentTarget.style.display = 'none'} />
               </div>
               <div className="p-6">
                 <h2 className="text-2xl font-bold mb-2">{receptItem.name}</h2>

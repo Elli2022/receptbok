@@ -19,12 +19,21 @@ mongoose
   .then(() => console.log("Connected to MongoDB Atlas"))
   .catch((error: any) => console.error("Error connecting to MongoDB", error));
 
+// Log request method and URL
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
+
 app.get("/", (req: Request, res: Response) => {
   res.send("Välkommen till min receptbok backend!");
 });
 
 // Ställ in public-mappen för statiska filer
 app.use('/public', express.static(path.join(__dirname, 'public')));
+
+// Lägg till detta för att servera statiska filer från 'uploads'-mappen
+app.use('/images', express.static(path.join(__dirname, 'uploads')));
 
 // Importerar och använder recept-routes
 import recipesRouter from "./routes/recipe";
@@ -37,10 +46,3 @@ app.use("/images", imageUploadRouter);
 app.listen(port, () => {
   console.log(`Servern körs på port ${port}`);
 });
-
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.url}`);
-  next();
-});
-
-
