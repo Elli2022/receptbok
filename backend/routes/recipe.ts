@@ -21,8 +21,9 @@ router.post("/", async (req: Request, res: Response) => {
     ingredients: req.body.ingredients,
     instructions: req.body.instructions,
     category: req.body.category,
-    image: req.body.image, // Sparar bild-URLen
+    image: req.body.image,
     source_image: req.body.source_image,
+    createdAt: new Date()
   });
 
   try {
