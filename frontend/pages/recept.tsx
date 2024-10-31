@@ -108,8 +108,8 @@ const ReceptPage = ({ recept }: Props) => {
         }
       });
   
-      const imageUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/images/${uploadResponse.data.file.filename}`;
-      console.log('Image URL:', imageUrl); // Log URL
+      const imageUrl = uploadResponse.data.file.location;
+      console.log('Image URL:', imageUrl);
   
       const recipeToSend = {
         ...newRecipe,
@@ -118,9 +118,8 @@ const ReceptPage = ({ recept }: Props) => {
       };
   
       const response = await axios.post(`${process.env.NEXT_PUBLIC_BACKEND_URL}/recipes`, recipeToSend);
-      console.log('Receptet har sparats:', response.data); // Log response data
+      console.log('Receptet har sparats:', response.data);
   
-      // Lägg till det nya receptet till listan så att det visas omedelbart
       setFilteredRecept([...filteredRecept, response.data]);
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -131,6 +130,7 @@ const ReceptPage = ({ recept }: Props) => {
       }
     }
   };
+  
   
   return (
     <div className="max-w-8xl mx-auto px-4 py-8">
