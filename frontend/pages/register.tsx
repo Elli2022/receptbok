@@ -45,7 +45,7 @@ const Register = () => {
         <h1 className="text-4xl font-bold text-center mb-8">Registrera dig</h1>
         <form onSubmit={(e) => onSubmit(e)}>
           <div className="mb-4">
-            <label className="block text-gray-700">Namn</label>
+            <label className="block text-white-700">Namn</label>
             <input
               type="text"
               name="name"
