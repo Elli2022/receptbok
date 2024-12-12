@@ -23,6 +23,11 @@ const Navbar = () => {
               Recept
             </Link>
           </li>
+          <li style={{ display: "inline", marginRight: "20px" }}>
+            <Link href="/login" style={{ textDecoration: "none" }}>
+              Logga in
+            </Link>
+          </li>
           <li style={{ display: "inline" }}>
             <Link href="/about" style={{ textDecoration: "none" }}>
               Om Mig
