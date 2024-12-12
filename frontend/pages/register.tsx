@@ -27,33 +27,36 @@ const Register = () => {
     setLoading(true);
     setError(null);
     setSuccess(false);
-
+  
     try {
       const config = {
         headers: {
           "Content-Type": "application/json",
         },
       };
-
+  
       const body = { name, username, email, password };
       console.log("Sending data to backend:", body);
-
+  
       const res = await axios.post("/api/users", body, config);
-
+  
       console.log("Response from backend:", res.data);
       setSuccess(true);
       setFormData({ name: "", username: "", email: "", password: "" });
     } catch (error: any) {
-      console.error("Error during registration:", error.response || error.message);
-
-      setError(
-        error.response?.data?.error || "Ett fel inträffade vid registreringen."
-      );
+      console.error("Error during registration:", error.response?.data || error.message);
+  
+      // Hantera om användaren redan finns
+      if (error.response?.status === 400) {
+        setError(error.response.data.msg || "Användaren finns redan");
+      } else {
+        setError("Ett oväntat fel inträffade. Försök igen.");
+      }
     } finally {
       setLoading(false);
     }
   };
-
+  
   return (
     <div>
       <Navbar />
