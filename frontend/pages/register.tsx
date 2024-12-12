@@ -1,3 +1,4 @@
+//frontend/pages/register.tsx
 import React, { useState } from "react";
 import axios from "axios";
 import Navbar from "@/app/components/Navbar";
@@ -11,6 +12,10 @@ const Register = () => {
     password: "",
   });
 
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
+
   const { name, username, email, password } = formData;
 
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -19,6 +24,10 @@ const Register = () => {
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setSuccess(false);
+
     try {
       const config = {
         headers: {
@@ -26,15 +35,22 @@ const Register = () => {
         },
       };
 
-      const body = JSON.stringify({ name, username, email, password });
+      const body = { name, username, email, password };
+      console.log("Sending data to backend:", body);
+
       const res = await axios.post("/api/users", body, config);
-      console.log(res.data);
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error(error.message);
-      } else {
-        console.error("An unknown error occurred");
-      }
+
+      console.log("Response from backend:", res.data);
+      setSuccess(true);
+      setFormData({ name: "", username: "", email: "", password: "" });
+    } catch (error: any) {
+      console.error("Error during registration:", error.response || error.message);
+
+      setError(
+        error.response?.data?.error || "Ett fel inträffade vid registreringen."
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -43,9 +59,18 @@ const Register = () => {
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-8">
         <h1 className="text-4xl font-bold text-center mb-8">Registrera dig</h1>
+        {error && typeof error === "string" && (
+  <p className="text-red-500 text-center mb-4">{error}</p>
+)}
+
+        {success && (
+          <p className="text-green-500 text-center mb-4">
+            Registrering lyckades! Du kan nu logga in.
+          </p>
+        )}
         <form onSubmit={(e) => onSubmit(e)}>
           <div className="mb-4">
-            <label className="block text-white-700">Namn</label>
+            <label className="block text-gray-700">Namn</label>
             <input
               type="text"
               name="name"
@@ -88,8 +113,12 @@ const Register = () => {
               className="mt-1 p-2 w-full border rounded"
             />
           </div>
-          <button type="submit" className="bg-blue-500 text-white p-2 rounded">
-            Register
+          <button
+            type="submit"
+            disabled={loading}
+            className={`bg-blue-500 text-white p-2 rounded w-full ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
+          >
+            {loading ? "Registrerar..." : "Registrera"}
           </button>
         </form>
       </div>
