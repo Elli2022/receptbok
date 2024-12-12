@@ -72,50 +72,51 @@ const Register = () => {
           </p>
         )}
         <form onSubmit={(e) => onSubmit(e)}>
-          <div className="mb-4">
-            <label className="block text-gray-700">Namn</label>
-            <input
-              type="text"
-              name="name"
-              value={name}
-              onChange={(e) => onChange(e)}
-              required
-              className="mt-1 p-2 w-full border rounded"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-gray-700">Användarnamn</label>
-            <input
-              type="text"
-              name="username"
-              value={username}
-              onChange={(e) => onChange(e)}
-              required
-              className="mt-1 p-2 w-full border rounded"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-gray-700">E-post</label>
-            <input
-              type="email"
-              name="email"
-              value={email}
-              onChange={(e) => onChange(e)}
-              required
-              className="mt-1 p-2 w-full border rounded"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="block text-gray-700">Lösenord</label>
-            <input
-              type="password"
-              name="password"
-              value={password}
-              onChange={(e) => onChange(e)}
-              required
-              className="mt-1 p-2 w-full border rounded"
-            />
-          </div>
+        <div className="mb-4">
+  <label className="block text-gray-700">Namn</label>
+  <input
+    type="text"
+    name="name"
+    value={name}
+    onChange={(e) => onChange(e)}
+    required
+    className="mt-1 p-2 w-full border rounded text-black placeholder-gray-500"
+  />
+</div>
+<div className="mb-4">
+  <label className="block text-gray-700">Användarnamn</label>
+  <input
+    type="text"
+    name="username"
+    value={username}
+    onChange={(e) => onChange(e)}
+    required
+    className="mt-1 p-2 w-full border rounded text-black placeholder-gray-500"
+  />
+</div>
+<div className="mb-4">
+  <label className="block text-gray-700">E-post</label>
+  <input
+    type="email"
+    name="email"
+    value={email}
+    onChange={(e) => onChange(e)}
+    required
+    className="mt-1 p-2 w-full border rounded text-black placeholder-gray-500"
+  />
+</div>
+<div className="mb-4">
+  <label className="block text-gray-700">Lösenord</label>
+  <input
+    type="password"
+    name="password"
+    value={password}
+    onChange={(e) => onChange(e)}
+    required
+    className="mt-1 p-2 w-full border rounded text-black placeholder-gray-500"
+  />
+</div>
+
           <button
             type="submit"
             disabled={loading}
