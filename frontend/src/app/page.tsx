@@ -62,11 +62,11 @@ const Home = () => {
               Receptbok
             </p>
             <h1 className="max-w-3xl text-5xl font-bold tracking-tight sm:text-6xl">
-              Din egen receptapp för vardag, helg och allt gott däremellan.
+              Ett gemensamt receptbibliotek med dina egna sparade favoriter.
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-stone-100">
-              Lägg till recept utan adminläge, spara favoriter och ha snabb
-              åtkomst från mobilen när sidan är publicerad.
+              Alla kan söka bland recepten. Logga in för att lägga till egna
+              recept och spara favoriter till ditt konto.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link

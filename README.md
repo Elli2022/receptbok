@@ -15,12 +15,12 @@ site in Safari and choose Share -> Add to Home Screen. The project includes a
 web app manifest, service worker, Apple mobile-web-app metadata, and
 `apple-touch-icon.png` for iPhone/iPad home-screen installation.
 
-It can save personal recipes and favorites in the browser without a backend. To
-sync recipes to the existing Express/MongoDB backend, add one of these
-environment variables in Netlify:
+Accounts, public recipes, and saved recipes use MongoDB through the Next.js API
+routes. Add these environment variables in Netlify:
 
-- `BACKEND_URL`: server-side backend URL, preferred for production
-- `NEXT_PUBLIC_BACKEND_URL`: public backend URL, useful for local testing
+- `DATABASE_URL`: MongoDB Atlas connection string. Use the old backend database
+  if you want existing recipes to appear in the public library.
+- `AUTH_SECRET`: a long random string used to sign login cookies.
 
 Do not put database strings, AWS keys, or other secrets in `netlify.toml`.
 

@@ -8,6 +8,8 @@ export type Recipe = {
   instructions: string[];
   image?: string;
   source_image?: string;
+  ownerId?: string;
+  ownerName?: string;
   createdAt?: string;
   localOnly?: boolean;
 };
@@ -51,6 +53,8 @@ export const normalizeRecipe = (recipe: any): Recipe => ({
   instructions: splitList(recipe?.instructions),
   image: recipe?.image ? String(recipe.image) : "",
   source_image: recipe?.source_image ? String(recipe.source_image) : "",
+  ownerId: recipe?.ownerId ? String(recipe.ownerId) : "",
+  ownerName: recipe?.ownerName ? String(recipe.ownerName) : "",
   createdAt: recipe?.createdAt ? String(recipe.createdAt) : new Date().toISOString(),
   localOnly: Boolean(recipe?.localOnly),
 });
