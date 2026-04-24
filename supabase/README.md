@@ -21,3 +21,22 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 ```
 
 The app does not need the Supabase secret key for normal use.
+
+## Auth redirect URLs
+
+In Supabase, open Authentication -> URL Configuration.
+
+Set Site URL to your main Netlify URL:
+
+```text
+https://ellisreceptbok.netlify.app
+```
+
+Add these Redirect URLs:
+
+```text
+https://ellisreceptbok.netlify.app/**
+https://supabase-recipe-library--ellisreceptbok.netlify.app/**
+https://**--ellisreceptbok.netlify.app/**
+http://localhost:3000/**
+```

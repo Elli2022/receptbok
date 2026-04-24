@@ -29,10 +29,15 @@ const Register = () => {
     setMessage(null);
 
     try {
+      const emailRedirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(
+        nextPath
+      )}`;
+
       const { data, error } = await getSupabaseBrowserClient().auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
+          emailRedirectTo,
           data: {
             name: formData.name,
             username: formData.username,
@@ -46,7 +51,7 @@ const Register = () => {
 
       if (!data.session) {
         setMessage(
-          "Kontot är skapat. Bekräfta e-posten om Supabase skickar ett mejl, och logga sedan in."
+          "Kontot är skapat. Bekräfta e-posten via länken i mejlet, så skickas du tillbaka hit."
         );
         return;
       }

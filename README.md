@@ -43,6 +43,15 @@ It creates:
 - Row Level Security policies for reading, saving, creating, updating, and
   deleting records safely
 
+Set Supabase Authentication -> URL Configuration:
+
+- Site URL: `https://ellisreceptbok.netlify.app`
+- Redirect URLs:
+  - `https://ellisreceptbok.netlify.app/**`
+  - `https://supabase-recipe-library--ellisreceptbok.netlify.app/**`
+  - `https://**--ellisreceptbok.netlify.app/**`
+  - `http://localhost:3000/**`
+
 ## Local Development
 
 ```bash

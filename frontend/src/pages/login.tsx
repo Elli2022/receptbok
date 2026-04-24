@@ -8,6 +8,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 const Login = () => {
   const router = useRouter();
   const nextPath = typeof router.query.next === "string" ? router.query.next : "/recept";
+  const confirmed = router.query.confirmed === "1";
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -59,6 +60,11 @@ const Login = () => {
           {error && (
             <p className="mt-5 rounded-md bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
               {error}
+            </p>
+          )}
+          {confirmed && !error && (
+            <p className="mt-5 rounded-md bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+              E-posten är bekräftad. Logga in för att fortsätta.
             </p>
           )}
 
