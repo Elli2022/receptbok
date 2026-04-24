@@ -51,16 +51,14 @@ export const createSupabaseServerClient = (req?: NextApiRequest) => {
     throw new Error("Supabase är inte kopplat ännu.");
   }
 
-  const authorization = authorizationHeader(req);
+  const accessToken = req ? accessTokenFromRequest(req) : "";
 
   return createClient(supabaseUrl, supabasePublishableKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
     },
-    global: {
-      headers: authorization ? { Authorization: authorization } : {},
-    },
+    ...(accessToken ? { accessToken: async () => accessToken } : {}),
   });
 };
 
@@ -71,7 +69,7 @@ export const getRequestUser = async (req: NextApiRequest) => {
     return null;
   }
 
-  const supabase = createSupabaseServerClient(req);
+  const supabase = createSupabaseServerClient();
   const { data, error } = await supabase.auth.getUser(token);
 
   if (error || !data.user) {
