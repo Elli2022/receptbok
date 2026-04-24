@@ -3,7 +3,7 @@ import Link from "next/link";
 import Navbar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
 import { Recipe, normalizeRecipe, recipeImage } from "@/lib/recipes";
-import { CurrentUser, loginRedirect } from "@/lib/authClient";
+import { CurrentUser, authFetch, loginRedirect } from "@/lib/authClient";
 
 const SparadePage = () => {
   const [user, setUser] = useState<CurrentUser | null>(null);
@@ -17,7 +17,7 @@ const SparadePage = () => {
       setError("");
 
       try {
-        const response = await fetch("/api/me/favorites");
+        const response = await authFetch("/api/me/favorites");
         const data = await response.json();
 
         if (response.status === 401) {
@@ -45,7 +45,7 @@ const SparadePage = () => {
   }, []);
 
   const removeFavorite = async (recipeId: string) => {
-    const response = await fetch("/api/me/favorites", {
+    const response = await authFetch("/api/me/favorites", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ recipeId, action: "remove" }),

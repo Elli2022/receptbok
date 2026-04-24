@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import Navbar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
+import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 
 const Login = () => {
   const router = useRouter();
@@ -21,15 +22,13 @@ const Login = () => {
     setError(null);
 
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+      const { error } = await getSupabaseBrowserClient().auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
       });
-      const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.message || "Inloggningen misslyckades.");
+      if (error) {
+        throw new Error("Inloggningen misslyckades. Kontrollera dina uppgifter.");
       }
 
       router.push(nextPath);

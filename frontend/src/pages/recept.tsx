@@ -10,7 +10,12 @@ import {
   recipeImage,
   recipeMatchesSearch,
 } from "@/lib/recipes";
-import { CurrentUser, getCurrentUser, loginRedirect } from "@/lib/authClient";
+import {
+  CurrentUser,
+  authFetch,
+  getCurrentUser,
+  loginRedirect,
+} from "@/lib/authClient";
 
 type Props = {
   recipes: Recipe[];
@@ -147,7 +152,7 @@ const ReceptPage = ({ recipes }: Props) => {
     }
 
     try {
-      const response = await fetch("/api/recipes", {
+      const response = await authFetch("/api/recipes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(recipePayload),
@@ -185,7 +190,7 @@ const ReceptPage = ({ recipes }: Props) => {
     }
 
     const isSaved = favoriteIds.includes(recipeId);
-    const response = await fetch("/api/me/favorites", {
+    const response = await authFetch("/api/me/favorites", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ recipeId, action: isSaved ? "remove" : "add" }),

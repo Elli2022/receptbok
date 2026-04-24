@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import Navbar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
+import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 
 const Register = () => {
   const router = useRouter();
@@ -14,6 +15,7 @@ const Register = () => {
     password: "",
   });
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const onChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -24,17 +26,29 @@ const Register = () => {
     event.preventDefault();
     setLoading(true);
     setError(null);
+    setMessage(null);
 
     try {
-      const response = await fetch("/api/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+      const { data, error } = await getSupabaseBrowserClient().auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            name: formData.name,
+            username: formData.username,
+          },
+        },
       });
-      const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.message || "Registreringen misslyckades.");
+      if (error) {
+        throw new Error(error.message || "Registreringen misslyckades.");
+      }
+
+      if (!data.session) {
+        setMessage(
+          "Kontot är skapat. Bekräfta e-posten om Supabase skickar ett mejl, och logga sedan in."
+        );
+        return;
       }
 
       router.push(nextPath);
@@ -67,6 +81,11 @@ const Register = () => {
           {error && (
             <p className="mt-5 rounded-md bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
               {error}
+            </p>
+          )}
+          {message && (
+            <p className="mt-5 rounded-md bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+              {message}
             </p>
           )}
 

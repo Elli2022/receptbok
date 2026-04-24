@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { CurrentUser, getCurrentUser } from "@/lib/authClient";
+import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 
 const Navbar = () => {
   const [user, setUser] = useState<CurrentUser | null>(null);
@@ -19,7 +20,7 @@ const Navbar = () => {
   }, []);
 
   const logout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
+    await getSupabaseBrowserClient().auth.signOut();
     setUser(null);
     window.location.href = "/recept";
   };

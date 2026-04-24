@@ -1,37 +1,58 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { connectToDatabase, hasDatabaseUrl } from "@/lib/server/db";
-import { getCurrentUser } from "@/lib/server/auth";
-import { RecipeModel } from "@/lib/server/models";
 import { recipePayload } from "@/lib/server/recipeData";
+import {
+  createSupabaseServerClient,
+  getRequestUser,
+  hasSupabaseConfig,
+  profileName,
+  recipeColumns,
+  recipeFromRow,
+  supabaseErrorMessage,
+  type ProfileRow,
+  type RecipeRow,
+} from "@/lib/server/supabase";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (!hasDatabaseUrl()) {
+  if (!hasSupabaseConfig()) {
     return req.method === "GET"
       ? res.status(200).json([])
       : res.status(503).json({
           message:
-            "Databasen är inte kopplad ännu. Lägg till DATABASE_URL i Netlify.",
+            "Supabase är inte kopplat ännu. Lägg till Supabase-nycklarna i Netlify.",
         });
   }
 
-  await connectToDatabase();
+  const supabase = createSupabaseServerClient(req);
 
   if (req.method === "GET") {
-    const recipes = await RecipeModel.find({})
-      .sort({ createdAt: -1, _id: -1 })
-      .lean();
+    const { data, error } = await supabase
+      .from("recipes")
+      .select(recipeColumns)
+      .order("created_at", { ascending: false });
 
-    return res.status(200).json(recipes);
+    if (error) {
+      return res.status(503).json({
+        message: supabaseErrorMessage(error),
+      });
+    }
+
+    return res.status(200).json(((data || []) as RecipeRow[]).map(recipeFromRow));
   }
 
   if (req.method === "POST") {
-    const user = await getCurrentUser(req);
+    const user = await getRequestUser(req);
 
     if (!user) {
       return res.status(401).json({
         message: "Du behöver logga in för att lägga till recept.",
       });
     }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id,name,username")
+      .eq("id", user.id)
+      .maybeSingle<ProfileRow>();
 
     const payload = recipePayload(req.body);
 
@@ -41,14 +62,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    const recipe = await RecipeModel.create({
-      ...payload,
-      ownerId: user._id,
-      ownerName: user.name || user.username,
-      createdAt: new Date(),
-    });
+    const { data, error } = await supabase
+      .from("recipes")
+      .insert({
+        name: payload.name,
+        description: payload.description,
+        portions: String(payload.portions || ""),
+        category: payload.category,
+        ingredients: payload.ingredients,
+        instructions: payload.instructions,
+        image: payload.image,
+        source_image: payload.source_image,
+        owner_id: user.id,
+        owner_name: profileName(user, profile),
+      })
+      .select(recipeColumns)
+      .single();
 
-    return res.status(201).json(recipe);
+    if (error) {
+      return res.status(400).json({
+        message: supabaseErrorMessage(error),
+      });
+    }
+
+    return res.status(201).json(recipeFromRow(data as RecipeRow));
   }
 
   res.setHeader("Allow", ["GET", "POST"]);

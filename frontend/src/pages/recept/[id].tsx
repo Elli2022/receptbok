@@ -8,7 +8,12 @@ import {
   normalizeRecipe,
   recipeImage,
 } from "@/lib/recipes";
-import { CurrentUser, getCurrentUser, loginRedirect } from "@/lib/authClient";
+import {
+  CurrentUser,
+  authFetch,
+  getCurrentUser,
+  loginRedirect,
+} from "@/lib/authClient";
 
 const ReceptDetalj = () => {
   const router = useRouter();
@@ -83,7 +88,7 @@ const ReceptDetalj = () => {
     }
 
     const isSaved = favoriteIds.includes(recipe._id);
-    const response = await fetch("/api/me/favorites", {
+    const response = await authFetch("/api/me/favorites", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

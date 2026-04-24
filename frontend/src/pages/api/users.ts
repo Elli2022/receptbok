@@ -1,17 +1,17 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import bcrypt from "bcryptjs";
-import { connectToDatabase, hasDatabaseUrl } from "@/lib/server/db";
-import { publicUser, setSessionCookie } from "@/lib/server/auth";
-import { UserModel } from "@/lib/server/models";
+import {
+  createSupabaseServerClient,
+  hasSupabaseConfig,
+} from "@/lib/server/supabase";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (!hasDatabaseUrl()) {
+  if (!hasSupabaseConfig()) {
     return res.status(503).json({
-      message: "Databasen är inte kopplad ännu. Lägg till DATABASE_URL i Netlify.",
+      message: "Supabase är inte kopplat ännu. Lägg till Supabase-nycklarna i Netlify.",
     });
   }
 
-  await connectToDatabase();
+  const supabase = createSupabaseServerClient(req);
 
   if (req.method === "POST") {
     const name = String(req.body?.name || "").trim();
@@ -25,31 +25,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    const existingUser = await UserModel.findOne({
-      $or: [{ email }, { username }],
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name, username },
+      },
     });
 
-    if (existingUser) {
-      return res.status(400).json({
-        message: "Det finns redan en användare med den e-posten eller användarnamnet.",
-      });
+    if (error) {
+      return res.status(400).json({ message: error.message });
     }
 
-    const user = await UserModel.create({
-      name,
-      username,
-      email,
-      password: await bcrypt.hash(password, 12),
-      favorites: [],
-    });
-
-    setSessionCookie(res, user);
-    return res.status(201).json({ user: publicUser(user) });
+    return res.status(201).json({ session: data.session, user: data.user });
   }
 
   if (req.method === "GET") {
-    const users = await UserModel.find({}).select("name username").lean();
-    return res.status(200).json(users);
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id,name,username")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      return res.status(503).json({ message: error.message });
+    }
+
+    return res.status(200).json(data || []);
   }
 
   res.setHeader("Allow", ["GET", "POST"]);
