@@ -1,6 +1,5 @@
 //frontend/pages/register.tsx
 import React, { useState } from "react";
-import axios from "axios";
 import Navbar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
 
@@ -29,29 +28,27 @@ const Register = () => {
     setSuccess(false);
   
     try {
-      const config = {
+      const res = await fetch("/api/users", {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-      };
+        body: JSON.stringify({ name, username, email, password }),
+      });
+      const data = await res.json();
   
-      const body = { name, username, email, password };
-      console.log("Sending data to backend:", body);
-  
-      const res = await axios.post("/api/users", body, config);
-  
-      console.log("Response from backend:", res.data);
+      if (!res.ok) {
+        throw new Error(data.msg || data.message || "Registreringen misslyckades.");
+      }
+
       setSuccess(true);
       setFormData({ name: "", username: "", email: "", password: "" });
-    } catch (error: any) {
-      console.error("Error during registration:", error.response?.data || error.message);
-  
-      // Hantera om användaren redan finns
-      if (error.response?.status === 400) {
-        setError(error.response.data.msg || "Användaren finns redan");
-      } else {
-        setError("Ett oväntat fel inträffade. Försök igen.");
-      }
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Ett oväntat fel inträffade. Försök igen."
+      );
     } finally {
       setLoading(false);
     }

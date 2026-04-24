@@ -1,0 +1,43 @@
+{
+  "name": "Receptbok",
+  "short_name": "Receptbok",
+  "description": "En personlig receptbok for mobilen och webben.",
+  "start_url": "/recept",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8f5ef",
+  "theme_color": "#047857",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nytt recept",
+      "short_name": "Nytt",
+      "url": "/recept#nytt-recept"
+    },
+    {
+      "name": "Sparade recept",
+      "short_name": "Sparade",
+      "url": "/sparade"
+    }
+  ]
+}

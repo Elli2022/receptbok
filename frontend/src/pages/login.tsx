@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import axios from "axios";
 import Navbar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
 import { useRouter } from "next/router";
@@ -27,25 +26,26 @@ const Login = () => {
     setError(null);
 
     try {
-      const config = {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-      };
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
 
-      const body = { email, password };
-      const res = await axios.post("/api/auth/login", body, config);
+      if (!res.ok) {
+        throw new Error(data.msg || data.message || "Inloggningen misslyckades.");
+      }
 
-      console.log("Login successful:", res.data);
-
-      // Spara token (om du använder en) och omdirigera användaren
-      localStorage.setItem("token", res.data.token); // Exempel på tokenhantering
-      router.push("/dashboard"); // Exempel på omdirigering till en dashboard
-    } catch (error: any) {
-      console.error("Error during login:", error.response || error.message);
-
+      localStorage.setItem("receptbok.user", JSON.stringify(data.user));
+      router.push("/recept");
+    } catch (error) {
       setError(
-        error.response?.data?.msg || "Inloggningen misslyckades. Kontrollera dina uppgifter."
+        error instanceof Error
+          ? error.message
+          : "Inloggningen misslyckades. Kontrollera dina uppgifter."
       );
     } finally {
       setLoading(false);

@@ -1,5 +1,29 @@
 # Recipe Application Backend
 
+## Netlify deployment
+
+This repository is prepared for Netlify through `netlify.toml` in the repository root.
+Connect the GitHub repository in Netlify and use the included settings:
+
+- Base directory: `frontend`
+- Build command: `npm run build`
+- Publish directory: `.next`
+- Node version: `20`
+
+The app works as a mobile-installable PWA. On iOS, open the published HTTPS
+site in Safari and choose Share -> Add to Home Screen. The project includes a
+web app manifest, service worker, Apple mobile-web-app metadata, and
+`apple-touch-icon.png` for iPhone/iPad home-screen installation.
+
+It can save personal recipes and favorites in the browser without a backend. To
+sync recipes to the existing Express/MongoDB backend, add one of these
+environment variables in Netlify:
+
+- `BACKEND_URL`: server-side backend URL, preferred for production
+- `NEXT_PUBLIC_BACKEND_URL`: public backend URL, useful for local testing
+
+Do not put database strings, AWS keys, or other secrets in `netlify.toml`.
+
 ## Description
 
 This backend application is designed to manage recipes. It utilizes MongoDB for data storage and Express.js for handling HTTP requests. The application allows users to create, read, update, and delete (CRUD) recipes. Each recipe includes information such as name, description, portions, ingredients, category, instructions, image URL, source image URL, and creation date.

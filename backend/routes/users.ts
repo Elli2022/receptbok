@@ -1,14 +1,13 @@
 //backend/routes/users.ts
 import express, { Request, Response } from "express";
 import Users from "../models/Users";
-import bcrypt from "bcrypt";
 
 const router = express.Router();
 
 // GET / - Hämta alla användare
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const users = await Users.find();
+    const users = await Users.find().select("-password");
     res.json(users);
   } catch (error) {
     res.status(500).json({ message: (error as Error).message });
@@ -26,23 +25,53 @@ router.post("/", async (req: Request, res: Response) => {
       return res.status(400).json({ msg: "Användaren finns redan" });
     }
 
-    // Hasha lösenordet innan det sparas
-    const hashedPassword = await bcrypt.hash(password, 12);
-
     // Skapa en ny användare
     const newUser = new Users({
       name,
       username,
       email,
-      password: hashedPassword,
+      password,
     });
 
     // Spara användaren i databasen
     const savedUser = await newUser.save();
-    res.status(201).json({ msg: "Användare registrerad", user: savedUser });
+    const safeUser = {
+      id: savedUser._id,
+      name: savedUser.name,
+      username: savedUser.username,
+      email: savedUser.email,
+      favorites: savedUser.favorites,
+    };
+
+    res.status(201).json({ msg: "Användare registrerad", user: safeUser });
   } catch (error) {
     console.error("Error i POST /api/users:", error);
     res.status(500).json({ message: "Serverfel vid registrering." });
+  }
+});
+
+router.post("/login", async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+
+  try {
+    const user = await Users.findOne({ email });
+    if (!user || !(await user.correctPassword(password))) {
+      return res.status(401).json({ msg: "Fel e-post eller lösenord." });
+    }
+
+    res.json({
+      msg: "Inloggning lyckades",
+      user: {
+        id: user._id,
+        name: user.name,
+        username: user.username,
+        email: user.email,
+        favorites: user.favorites,
+      },
+    });
+  } catch (error) {
+    console.error("Error i POST /api/users/login:", error);
+    res.status(500).json({ message: "Serverfel vid inloggning." });
   }
 });
 

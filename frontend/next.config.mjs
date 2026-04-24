@@ -1,14 +1,14 @@
-// next.config.mjs
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const appRoot = dirname(fileURLToPath(import.meta.url));
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    async rewrites() {
-      return [
-        {
-          source: "/api/:path*", // Matchar alla API-anrop som börjar med /api
-          destination: "http://localhost:3001/api/:path*", // Backend-serverns URL
-        },
-      ];
-    },
-  };
-  
-  export default nextConfig;
+  reactStrictMode: true,
+  turbopack: {
+    root: appRoot,
+  },
+};
+
+export default nextConfig;
