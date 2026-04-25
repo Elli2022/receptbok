@@ -132,8 +132,16 @@ const ReceptPage = () => {
     }
 
     try {
-      await createRecipe(recipePayload);
-      setRemoteRecipes(await listRecipes());
+      const savedRecipe = await createRecipe(recipePayload);
+      setSearchTerm("");
+      setSelectedCategory("Alla");
+      setRemoteRecipes((current) => [
+        savedRecipe,
+        ...current.filter((recipe) => recipe._id !== savedRecipe._id),
+      ]);
+      void listRecipes()
+        .then(setRemoteRecipes)
+        .catch(() => undefined);
       setFormStatus("Receptet är publicerat i biblioteket.");
       resetDraft();
     } catch (error) {

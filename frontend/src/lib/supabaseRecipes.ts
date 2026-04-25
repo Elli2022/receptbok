@@ -117,21 +117,19 @@ export const setRecipeFavorite = async (recipeId: string, isSaved: boolean) => {
   const { supabase, session } = await requireSession();
 
   if (isSaved) {
-    const { error } = await fromTable(supabase, "favorite_recipes")
-      .delete()
-      .eq("user_id", session.user.id)
-      .eq("recipe_id", recipeId);
+    const { error } = await (supabase as any).rpc("remove_favorite_recipe", {
+      target_recipe_id: recipeId,
+    });
 
     if (error) {
       throw new Error(supabaseMessage(error));
     }
   } else {
-    const { error } = await fromTable(supabase, "favorite_recipes").insert({
-      user_id: session.user.id,
-      recipe_id: recipeId,
+    const { error } = await (supabase as any).rpc("save_favorite_recipe", {
+      target_recipe_id: recipeId,
     });
 
-    if (error && error.code !== "23505") {
+    if (error) {
       throw new Error(supabaseMessage(error));
     }
   }
