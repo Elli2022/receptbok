@@ -1,5 +1,8 @@
 import { Recipe, normalizeRecipe } from "./recipes";
-import { getSupabaseBrowserClient } from "./supabaseClient";
+import {
+  getSupabaseAuthedClient,
+  getSupabaseBrowserClient,
+} from "./supabaseClient";
 
 const recipeColumns =
   "id,name,description,portions,category,ingredients,instructions,image,source_image,owner_id,owner_name,created_at";
@@ -14,7 +17,7 @@ const supabaseMessage = (error: { code?: string; message?: string }) =>
     : error.message || "Supabase kunde inte svara just nu.";
 
 const fromTable = (
-  supabase: ReturnType<typeof getSupabaseBrowserClient>,
+  supabase: any,
   tableName: string
 ) => supabase.from(tableName as never) as any;
 
@@ -35,17 +38,20 @@ const recipeFromRow = (row: any): Recipe =>
   });
 
 const requireSession = async () => {
-  const supabase = getSupabaseBrowserClient();
-  const { data } = await supabase.auth.getSession();
+  const browserSupabase = getSupabaseBrowserClient();
+  const { data } = await browserSupabase.auth.getSession();
 
-  if (!data.session?.user) {
+  if (!data.session?.access_token || !data.session.user) {
     throw new Error("Du behöver logga in först.");
   }
 
-  return { supabase, session: data.session };
+  return {
+    supabase: getSupabaseAuthedClient(data.session.access_token),
+    session: data.session,
+  };
 };
 
-const ownerName = async (supabase: ReturnType<typeof getSupabaseBrowserClient>, user: any) => {
+const ownerName = async (supabase: any, user: any) => {
   const { data } = await fromTable(supabase, "profiles")
     .select("name,username")
     .eq("id", user.id)

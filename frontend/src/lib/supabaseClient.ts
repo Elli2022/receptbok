@@ -11,16 +11,43 @@ let browserClient: ReturnType<typeof createClient> | null = null;
 export const hasSupabaseConfig = () =>
   Boolean(supabaseUrl && supabasePublishableKey);
 
-export const getSupabaseBrowserClient = () => {
+const requireSupabaseConfig = () => {
   if (!hasSupabaseConfig()) {
     throw new Error(
       "Supabase är inte kopplat ännu. Lägg till Supabase-nycklarna i Netlify."
     );
   }
+};
+
+export const getSupabaseBrowserClient = () => {
+  requireSupabaseConfig();
 
   if (!browserClient) {
-    browserClient = createClient(supabaseUrl, supabasePublishableKey);
+    browserClient = createClient(supabaseUrl, supabasePublishableKey, {
+      auth: {
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        persistSession: true,
+      },
+    });
   }
 
   return browserClient;
+};
+
+export const getSupabaseAuthedClient = (accessToken: string) => {
+  requireSupabaseConfig();
+
+  return createClient(supabaseUrl, supabasePublishableKey, {
+    auth: {
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+      persistSession: false,
+    },
+    global: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  });
 };

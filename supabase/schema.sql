@@ -74,6 +74,45 @@ after insert on auth.users
 for each row
 execute function public.handle_new_user();
 
+create or replace function public.set_recipe_owner()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  profile_name text;
+begin
+  if auth.uid() is null then
+    raise exception 'Du behöver vara inloggad för att skapa recept.';
+  end if;
+
+  if new.owner_id is null then
+    new.owner_id = auth.uid();
+  end if;
+
+  if new.owner_id <> auth.uid() then
+    raise exception 'Du kan bara skapa recept för ditt eget konto.';
+  end if;
+
+  if coalesce(new.owner_name, '') = '' then
+    select name into profile_name
+    from public.profiles
+    where id = auth.uid();
+
+    new.owner_name = coalesce(profile_name, 'Receptvän');
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists recipes_set_owner on public.recipes;
+create trigger recipes_set_owner
+before insert on public.recipes
+for each row
+execute function public.set_recipe_owner();
+
 alter table public.profiles enable row level security;
 alter table public.recipes enable row level security;
 alter table public.favorite_recipes enable row level security;
@@ -112,7 +151,7 @@ create policy "Inloggade kan publicera egna recept"
 on public.recipes
 for insert
 to authenticated
-with check (auth.uid() = owner_id);
+with check (auth.uid() is not null and auth.uid() = owner_id);
 
 drop policy if exists "Ägare kan ändra sina recept" on public.recipes;
 create policy "Ägare kan ändra sina recept"
