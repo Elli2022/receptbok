@@ -82,18 +82,21 @@ drop policy if exists "Alla kan läsa publika profiler" on public.profiles;
 create policy "Alla kan läsa publika profiler"
 on public.profiles
 for select
+to anon, authenticated
 using (true);
 
 drop policy if exists "Användare kan skapa sin profil" on public.profiles;
 create policy "Användare kan skapa sin profil"
 on public.profiles
 for insert
+to authenticated
 with check (auth.uid() = id);
 
 drop policy if exists "Användare kan ändra sin profil" on public.profiles;
 create policy "Användare kan ändra sin profil"
 on public.profiles
 for update
+to authenticated
 using (auth.uid() = id)
 with check (auth.uid() = id);
 
@@ -101,18 +104,21 @@ drop policy if exists "Alla kan läsa recept" on public.recipes;
 create policy "Alla kan läsa recept"
 on public.recipes
 for select
+to anon, authenticated
 using (true);
 
 drop policy if exists "Inloggade kan publicera egna recept" on public.recipes;
 create policy "Inloggade kan publicera egna recept"
 on public.recipes
 for insert
+to authenticated
 with check (auth.uid() = owner_id);
 
 drop policy if exists "Ägare kan ändra sina recept" on public.recipes;
 create policy "Ägare kan ändra sina recept"
 on public.recipes
 for update
+to authenticated
 using (auth.uid() = owner_id)
 with check (auth.uid() = owner_id);
 
@@ -120,22 +126,26 @@ drop policy if exists "Ägare kan ta bort sina recept" on public.recipes;
 create policy "Ägare kan ta bort sina recept"
 on public.recipes
 for delete
+to authenticated
 using (auth.uid() = owner_id);
 
 drop policy if exists "Användare kan läsa sina sparade recept" on public.favorite_recipes;
 create policy "Användare kan läsa sina sparade recept"
 on public.favorite_recipes
 for select
+to authenticated
 using (auth.uid() = user_id);
 
 drop policy if exists "Användare kan spara recept" on public.favorite_recipes;
 create policy "Användare kan spara recept"
 on public.favorite_recipes
 for insert
+to authenticated
 with check (auth.uid() = user_id);
 
 drop policy if exists "Användare kan ta bort sina sparade recept" on public.favorite_recipes;
 create policy "Användare kan ta bort sina sparade recept"
 on public.favorite_recipes
 for delete
+to authenticated
 using (auth.uid() = user_id);
