@@ -17,7 +17,7 @@ import { getRecipeById, setRecipeFavorite } from "@/lib/supabaseRecipes";
 
 const ReceptDetalj = () => {
   const router = useRouter();
-  const { id } = router.query;
+  const id = typeof router.query.id === "string" ? router.query.id : "";
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
@@ -39,7 +39,7 @@ const ReceptDetalj = () => {
 
   useEffect(() => {
     const loadRecipe = async () => {
-      if (!id || typeof id !== "string") {
+      if (!id) {
         return;
       }
 

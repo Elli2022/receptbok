@@ -118,7 +118,7 @@ const Home = () => {
               {featuredRecipes.map((recipe) => (
                 <Link
                   key={recipe._id}
-                  href={`/recept/${recipe._id}`}
+                  href={`/recept-detalj?id=${encodeURIComponent(recipe._id)}`}
                   className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
                 >
                   <img
