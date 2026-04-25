@@ -126,15 +126,12 @@ export const setRecipeFavorite = async (recipeId: string, isSaved: boolean) => {
       throw new Error(supabaseMessage(error));
     }
   } else {
-    const { error } = await fromTable(supabase, "favorite_recipes").upsert(
-      {
-        user_id: session.user.id,
-        recipe_id: recipeId,
-      },
-      { onConflict: "user_id,recipe_id" }
-    );
+    const { error } = await fromTable(supabase, "favorite_recipes").insert({
+      user_id: session.user.id,
+      recipe_id: recipeId,
+    });
 
-    if (error) {
+    if (error && error.code !== "23505") {
       throw new Error(supabaseMessage(error));
     }
   }

@@ -132,8 +132,8 @@ const ReceptPage = () => {
     }
 
     try {
-      const savedRecipe = await createRecipe(recipePayload);
-      setRemoteRecipes((current) => [savedRecipe, ...current]);
+      await createRecipe(recipePayload);
+      setRemoteRecipes(await listRecipes());
       setFormStatus("Receptet är publicerat i biblioteket.");
       resetDraft();
     } catch (error) {
