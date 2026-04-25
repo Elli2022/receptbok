@@ -34,20 +34,3 @@ export const getSupabaseBrowserClient = () => {
 
   return browserClient;
 };
-
-export const getSupabaseAuthedClient = (accessToken: string) => {
-  requireSupabaseConfig();
-
-  return createClient(supabaseUrl, supabasePublishableKey, {
-    auth: {
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-      persistSession: false,
-    },
-    global: {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    },
-  });
-};

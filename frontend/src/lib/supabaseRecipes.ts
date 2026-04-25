@@ -1,8 +1,5 @@
 import { Recipe, normalizeRecipe } from "./recipes";
-import {
-  getSupabaseAuthedClient,
-  getSupabaseBrowserClient,
-} from "./supabaseClient";
+import { getSupabaseBrowserClient } from "./supabaseClient";
 
 const recipeColumns =
   "id,name,description,portions,category,ingredients,instructions,image,source_image,owner_id,owner_name,created_at";
@@ -46,21 +43,9 @@ const requireSession = async () => {
   }
 
   return {
-    supabase: getSupabaseAuthedClient(data.session.access_token),
+    supabase: browserSupabase,
     session: data.session,
   };
-};
-
-const ownerName = async (supabase: any, user: any) => {
-  const { data } = await fromTable(supabase, "profiles")
-    .select("name,username")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  return (
-    (data as { name?: string | null } | null)?.name ||
-    String(user.user_metadata?.name || user.email || "Receptvän")
-  );
 };
 
 export const listRecipes = async () => {
@@ -91,23 +76,19 @@ export const getRecipeById = async (recipeId: string) => {
 };
 
 export const createRecipe = async (recipe: Recipe) => {
-  const { supabase, session } = await requireSession();
-  const name = await ownerName(supabase, session.user);
+  const { supabase } = await requireSession();
 
-  const { data, error } = await fromTable(supabase, "recipes")
-    .insert({
-      name: recipe.name,
-      description: recipe.description || "",
-      portions: String(recipe.portions || ""),
-      category: recipe.category || "Okategoriserat",
-      ingredients: recipe.ingredients,
-      instructions: recipe.instructions,
-      image: recipe.image || "",
-      source_image: recipe.source_image || "",
-      owner_id: session.user.id,
-      owner_name: name,
+  const { data, error } = await (supabase as any)
+    .rpc("create_recipe", {
+      recipe_name: recipe.name,
+      recipe_description: recipe.description || "",
+      recipe_portions: String(recipe.portions || ""),
+      recipe_category: recipe.category || "Okategoriserat",
+      recipe_ingredients: recipe.ingredients,
+      recipe_instructions: recipe.instructions,
+      recipe_image: recipe.image || "",
+      recipe_source_image: recipe.source_image || "",
     })
-    .select(recipeColumns)
     .single();
 
   if (error) {
