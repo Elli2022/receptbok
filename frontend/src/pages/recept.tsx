@@ -43,6 +43,7 @@ const ReceptPage = () => {
   const [formStatus, setFormStatus] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [favoriteStatus, setFavoriteStatus] = useState("");
+  const [libraryStatus, setLibraryStatus] = useState("");
 
   useEffect(() => {
     getCurrentUser()
@@ -55,7 +56,17 @@ const ReceptPage = () => {
         setFavoriteIds([]);
       });
 
-    listRecipes().then(setRemoteRecipes).catch(() => setRemoteRecipes([]));
+    listRecipes()
+      .then((recipes) => {
+        setRemoteRecipes(recipes);
+        setLibraryStatus("");
+      })
+      .catch((error) => {
+        setRemoteRecipes([]);
+        setLibraryStatus(
+          error instanceof Error ? error.message : "Biblioteket kunde inte laddas."
+        );
+      });
   }, []);
 
   const allRecipes = remoteRecipes;
@@ -135,13 +146,21 @@ const ReceptPage = () => {
       const savedRecipe = await createRecipe(recipePayload);
       setSearchTerm("");
       setSelectedCategory("Alla");
+      setLibraryStatus("");
       setRemoteRecipes((current) => [
         savedRecipe,
         ...current.filter((recipe) => recipe._id !== savedRecipe._id),
       ]);
       void listRecipes()
-        .then(setRemoteRecipes)
-        .catch(() => undefined);
+        .then((recipes) => {
+          setRemoteRecipes(recipes);
+          setLibraryStatus("");
+        })
+        .catch((error) => {
+          setLibraryStatus(
+            error instanceof Error ? error.message : "Biblioteket kunde inte uppdateras."
+          );
+        });
       setFormStatus("Receptet är publicerat i biblioteket.");
       resetDraft();
     } catch (error) {
@@ -222,6 +241,12 @@ const ReceptPage = () => {
         {favoriteStatus && (
           <p className="mt-4 rounded-md bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
             {favoriteStatus}
+          </p>
+        )}
+
+        {libraryStatus && (
+          <p className="mt-4 rounded-md bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            {libraryStatus}
           </p>
         )}
 

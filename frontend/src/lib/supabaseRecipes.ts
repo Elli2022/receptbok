@@ -34,6 +34,14 @@ const recipeFromRow = (row: any): Recipe =>
     createdAt: row.created_at,
   });
 
+const ensureRecipeRow = (row: any) => {
+  if (!row?.id || !row?.name) {
+    throw new Error("Receptet sparades inte korrekt i databasen.");
+  }
+
+  return recipeFromRow(row);
+};
+
 const requireSession = async () => {
   const browserSupabase = getSupabaseBrowserClient();
   const { data } = await browserSupabase.auth.getSession();
@@ -50,29 +58,26 @@ const requireSession = async () => {
 
 export const listRecipes = async () => {
   const supabase = getSupabaseBrowserClient();
-  const { data, error } = await fromTable(supabase, "recipes")
-    .select(recipeColumns)
-    .order("created_at", { ascending: false });
+  const { data, error } = await (supabase as any).rpc("list_public_recipes");
 
   if (error) {
     throw new Error(supabaseMessage(error));
   }
 
-  return (data || []).map(recipeFromRow);
+  return (data || []).map(ensureRecipeRow);
 };
 
 export const getRecipeById = async (recipeId: string) => {
   const supabase = getSupabaseBrowserClient();
-  const { data, error } = await fromTable(supabase, "recipes")
-    .select(recipeColumns)
-    .eq("id", recipeId)
+  const { data, error } = await (supabase as any)
+    .rpc("get_public_recipe", { target_recipe_id: recipeId })
     .maybeSingle();
 
   if (error) {
     throw new Error(supabaseMessage(error));
   }
 
-  return data ? recipeFromRow(data) : null;
+  return data ? ensureRecipeRow(data) : null;
 };
 
 export const createRecipe = async (recipe: Recipe) => {
@@ -95,14 +100,12 @@ export const createRecipe = async (recipe: Recipe) => {
     throw new Error(supabaseMessage(error));
   }
 
-  return recipeFromRow(data);
+  return ensureRecipeRow(data);
 };
 
 export const getFavoriteIds = async () => {
-  const { supabase, session } = await requireSession();
-  const { data, error } = await fromTable(supabase, "favorite_recipes")
-    .select("recipe_id")
-    .eq("user_id", session.user.id);
+  const { supabase } = await requireSession();
+  const { data, error } = await (supabase as any).rpc("list_user_favorite_ids");
 
   if (error) {
     throw new Error(supabaseMessage(error));
@@ -138,43 +141,12 @@ export const setRecipeFavorite = async (recipeId: string, isSaved: boolean) => {
 };
 
 export const listSavedRecipes = async () => {
-  const { supabase, session } = await requireSession();
-  const { data: favorites, error: favoriteError } = await fromTable(
-    supabase,
-    "favorite_recipes"
-  )
-    .select("recipe_id,created_at")
-    .eq("user_id", session.user.id)
-    .order("created_at", { ascending: false });
-
-  if (favoriteError) {
-    throw new Error(supabaseMessage(favoriteError));
-  }
-
-  const favoriteIds = ((favorites || []) as Array<{ recipe_id: string }>).map(
-    (favorite) => String(favorite.recipe_id)
-  );
-
-  if (favoriteIds.length === 0) {
-    return [];
-  }
-
-  const { data, error } = await fromTable(supabase, "recipes")
-    .select(recipeColumns)
-    .in("id", favoriteIds);
+  const { supabase } = await requireSession();
+  const { data, error } = await (supabase as any).rpc("list_saved_recipes");
 
   if (error) {
     throw new Error(supabaseMessage(error));
   }
 
-  const recipeOrder = new Map(
-    favoriteIds.map((recipeId, index) => [recipeId, index])
-  );
-
-  return ((data || []) as any[])
-    .map(recipeFromRow)
-    .sort(
-      (first: Recipe, second: Recipe) =>
-        (recipeOrder.get(first._id) ?? 0) - (recipeOrder.get(second._id) ?? 0)
-    );
+  return ((data || []) as any[]).map(ensureRecipeRow);
 };
