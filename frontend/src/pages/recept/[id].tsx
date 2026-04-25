@@ -10,10 +10,10 @@ import {
 } from "@/lib/recipes";
 import {
   CurrentUser,
-  authFetch,
   getCurrentUser,
   loginRedirect,
 } from "@/lib/authClient";
+import { getRecipeById, setRecipeFavorite } from "@/lib/supabaseRecipes";
 
 const ReceptDetalj = () => {
   const router = useRouter();
@@ -47,13 +47,12 @@ const ReceptDetalj = () => {
       setError("");
 
       try {
-        const response = await fetch(`/api/recipes/${id}`);
-
-        if (!response.ok) {
+        const loadedRecipe = await getRecipeById(id);
+        if (!loadedRecipe) {
           throw new Error("Receptet kunde inte hämtas.");
         }
 
-        setRecipe(normalizeRecipe(await response.json()));
+        setRecipe(normalizeRecipe(loadedRecipe));
         setCheckedSteps({});
       } catch {
         setError("Receptet kunde inte hittas.");
@@ -88,18 +87,10 @@ const ReceptDetalj = () => {
     }
 
     const isSaved = favoriteIds.includes(recipe._id);
-    const response = await authFetch("/api/me/favorites", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        recipeId: recipe._id,
-        action: isSaved ? "remove" : "add",
-      }),
-    });
-    const data = await response.json();
-
-    if (response.ok) {
-      setFavoriteIds(data.favoriteIds || []);
+    try {
+      setFavoriteIds(await setRecipeFavorite(recipe._id, isSaved));
+    } catch {
+      // Knappen kan testas igen om nätet tillfälligt strular.
     }
   };
 

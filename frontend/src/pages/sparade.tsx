@@ -2,8 +2,13 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Navbar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
-import { Recipe, normalizeRecipe, recipeImage } from "@/lib/recipes";
-import { CurrentUser, authFetch, loginRedirect } from "@/lib/authClient";
+import { Recipe, recipeImage } from "@/lib/recipes";
+import {
+  CurrentUser,
+  getCurrentUser,
+  loginRedirect,
+} from "@/lib/authClient";
+import { listSavedRecipes, setRecipeFavorite } from "@/lib/supabaseRecipes";
 
 const SparadePage = () => {
   const [user, setUser] = useState<CurrentUser | null>(null);
@@ -17,21 +22,16 @@ const SparadePage = () => {
       setError("");
 
       try {
-        const response = await authFetch("/api/me/favorites");
-        const data = await response.json();
+        const currentUser = await getCurrentUser();
 
-        if (response.status === 401) {
+        if (!currentUser) {
           setUser(null);
           setSavedRecipes([]);
           return;
         }
 
-        if (!response.ok) {
-          throw new Error(data.message || "Kunde inte hämta sparade recept.");
-        }
-
-        setUser(data.user);
-        setSavedRecipes(Array.isArray(data.recipes) ? data.recipes.map(normalizeRecipe) : []);
+        setUser(currentUser);
+        setSavedRecipes(await listSavedRecipes());
       } catch (error) {
         setError(
           error instanceof Error ? error.message : "Kunde inte hämta sparade recept."
@@ -45,14 +45,13 @@ const SparadePage = () => {
   }, []);
 
   const removeFavorite = async (recipeId: string) => {
-    const response = await authFetch("/api/me/favorites", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ recipeId, action: "remove" }),
-    });
-
-    if (response.ok) {
+    try {
+      await setRecipeFavorite(recipeId, true);
       setSavedRecipes((current) => current.filter((recipe) => recipe._id !== recipeId));
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : "Kunde inte ta bort receptet."
+      );
     }
   };
 

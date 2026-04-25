@@ -12,14 +12,14 @@ import {
 } from "@/lib/recipes";
 import {
   CurrentUser,
-  authFetch,
   getCurrentUser,
   loginRedirect,
 } from "@/lib/authClient";
-
-type Props = {
-  recipes: Recipe[];
-};
+import {
+  createRecipe,
+  listRecipes,
+  setRecipeFavorite,
+} from "@/lib/supabaseRecipes";
 
 const emptyDraft: RecipeDraft = {
   name: "",
@@ -32,31 +32,9 @@ const emptyDraft: RecipeDraft = {
   imageDataUrl: "",
 };
 
-const getBaseUrl = (req: any) => {
-  const protocol = req.headers["x-forwarded-proto"] || "http";
-  return `${protocol}://${req.headers.host}`;
-};
-
-export async function getServerSideProps({ req }: { req: any }) {
-  try {
-    const response = await fetch(`${getBaseUrl(req)}/api/recipes`);
-    const data = await response.json();
-
-    return {
-      props: {
-        recipes: Array.isArray(data) ? data.map(normalizeRecipe) : [],
-      },
-    };
-  } catch {
-    return {
-      props: { recipes: [] },
-    };
-  }
-}
-
-const ReceptPage = ({ recipes }: Props) => {
+const ReceptPage = () => {
   const router = useRouter();
-  const [remoteRecipes, setRemoteRecipes] = useState<Recipe[]>(recipes);
+  const [remoteRecipes, setRemoteRecipes] = useState<Recipe[]>([]);
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -76,6 +54,8 @@ const ReceptPage = ({ recipes }: Props) => {
         setUser(null);
         setFavoriteIds([]);
       });
+
+    listRecipes().then(setRemoteRecipes).catch(() => setRemoteRecipes([]));
   }, []);
 
   const allRecipes = remoteRecipes;
@@ -152,23 +132,7 @@ const ReceptPage = ({ recipes }: Props) => {
     }
 
     try {
-      const response = await authFetch("/api/recipes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(recipePayload),
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          router.push(loginRedirect("/recept#nytt-recept"));
-          return;
-        }
-
-        throw new Error(data.message || "Receptet kunde inte sparas.");
-      }
-
-      const savedRecipe = normalizeRecipe(data);
+      const savedRecipe = await createRecipe(recipePayload);
       setRemoteRecipes((current) => [savedRecipe, ...current]);
       setFormStatus("Receptet är publicerat i biblioteket.");
       resetDraft();
@@ -190,19 +154,15 @@ const ReceptPage = ({ recipes }: Props) => {
     }
 
     const isSaved = favoriteIds.includes(recipeId);
-    const response = await authFetch("/api/me/favorites", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ recipeId, action: isSaved ? "remove" : "add" }),
-    });
-    const data = await response.json();
-
-    if (!response.ok) {
-      setFavoriteStatus(data.message || "Kunde inte uppdatera sparade recept.");
-      return;
+    try {
+      setFavoriteIds(await setRecipeFavorite(recipeId, isSaved));
+    } catch (error) {
+      setFavoriteStatus(
+        error instanceof Error
+          ? error.message
+          : "Kunde inte uppdatera sparade recept."
+      );
     }
-
-    setFavoriteIds(data.favoriteIds || []);
   };
 
   return (

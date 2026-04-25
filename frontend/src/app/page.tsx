@@ -6,25 +6,18 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import {
   Recipe,
-  getLocalRecipes,
-  mergeRecipes,
-  normalizeRecipe,
   recipeImage,
 } from "@/lib/recipes";
+import { listRecipes } from "@/lib/supabaseRecipes";
 
 const Home = () => {
   const [remoteRecipes, setRemoteRecipes] = useState<Recipe[]>([]);
-  const [localRecipes, setLocalRecipes] = useState<Recipe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setLocalRecipes(getLocalRecipes());
-
     const fetchRecipes = async () => {
       try {
-        const response = await fetch("/api/recipes");
-        const data = await response.json();
-        setRemoteRecipes(Array.isArray(data) ? data.map(normalizeRecipe) : []);
+        setRemoteRecipes(await listRecipes());
       } catch {
         setRemoteRecipes([]);
       } finally {
@@ -35,10 +28,7 @@ const Home = () => {
     fetchRecipes();
   }, []);
 
-  const recipes = useMemo(
-    () => mergeRecipes(localRecipes, remoteRecipes),
-    [localRecipes, remoteRecipes]
-  );
+  const recipes = useMemo(() => remoteRecipes, [remoteRecipes]);
 
   const featuredRecipes = recipes.slice(0, 3);
   const categories = Array.from(

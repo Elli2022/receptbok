@@ -1,4 +1,4 @@
-const CACHE_NAME = "receptbok-v1";
+const CACHE_NAME = "receptbok-v2";
 const APP_SHELL = [
   "/",
   "/recept",
