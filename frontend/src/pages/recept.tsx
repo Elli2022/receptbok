@@ -21,6 +21,8 @@ import {
   setRecipeFavorite,
 } from "@/lib/supabaseRecipes";
 
+const libraryCacheKey = "receptbok-library-cache-v1";
+
 const emptyDraft: RecipeDraft = {
   name: "",
   category: "",
@@ -44,8 +46,46 @@ const ReceptPage = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [favoriteStatus, setFavoriteStatus] = useState("");
   const [libraryStatus, setLibraryStatus] = useState("");
+  const [isLibraryLoading, setIsLibraryLoading] = useState(true);
+
+  const readCachedRecipes = () => {
+    if (typeof window === "undefined") {
+      return [] as Recipe[];
+    }
+
+    try {
+      const cachedValue = window.localStorage.getItem(libraryCacheKey);
+
+      if (!cachedValue) {
+        return [] as Recipe[];
+      }
+
+      const parsedValue = JSON.parse(cachedValue);
+      return Array.isArray(parsedValue) ? parsedValue : [];
+    } catch {
+      return [] as Recipe[];
+    }
+  };
+
+  const writeCachedRecipes = (recipes: Recipe[]) => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(libraryCacheKey, JSON.stringify(recipes));
+    } catch {
+      // Ignore storage issues and keep the fresh data in memory.
+    }
+  };
 
   useEffect(() => {
+    const cachedRecipes = readCachedRecipes();
+
+    if (cachedRecipes.length > 0) {
+      setRemoteRecipes(cachedRecipes);
+    }
+
     getCurrentUser()
       .then((currentUser) => {
         setUser(currentUser);
@@ -59,13 +99,21 @@ const ReceptPage = () => {
     listRecipes()
       .then((recipes) => {
         setRemoteRecipes(recipes);
+        writeCachedRecipes(recipes);
         setLibraryStatus("");
       })
       .catch((error) => {
-        setRemoteRecipes([]);
-        setLibraryStatus(
-          error instanceof Error ? error.message : "Biblioteket kunde inte laddas."
-        );
+        if (cachedRecipes.length === 0) {
+          setRemoteRecipes([]);
+          setLibraryStatus(
+            error instanceof Error ? error.message : "Biblioteket kunde inte laddas."
+          );
+        } else {
+          setLibraryStatus("");
+        }
+      })
+      .finally(() => {
+        setIsLibraryLoading(false);
       });
   }, []);
 
@@ -147,13 +195,18 @@ const ReceptPage = () => {
       setSearchTerm("");
       setSelectedCategory("Alla");
       setLibraryStatus("");
-      setRemoteRecipes((current) => [
-        savedRecipe,
-        ...current.filter((recipe) => recipe._id !== savedRecipe._id),
-      ]);
+      setRemoteRecipes((current) => {
+        const nextRecipes = [
+          savedRecipe,
+          ...current.filter((recipe) => recipe._id !== savedRecipe._id),
+        ];
+        writeCachedRecipes(nextRecipes);
+        return nextRecipes;
+      });
       void listRecipes()
         .then((recipes) => {
           setRemoteRecipes(recipes);
+          writeCachedRecipes(recipes);
           setLibraryStatus("");
         })
         .catch((error) => {
@@ -250,6 +303,12 @@ const ReceptPage = () => {
           </p>
         )}
 
+        {isLibraryLoading && remoteRecipes.length > 0 && (
+          <p className="mt-4 text-sm font-medium text-stone-500">
+            Uppdaterar biblioteket...
+          </p>
+        )}
+
         <section className="mt-5 flex gap-2 overflow-x-auto pb-2">
           {categories.map((category) => (
             <button
@@ -267,59 +326,79 @@ const ReceptPage = () => {
           ))}
         </section>
 
-        <section className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredRecipes.map((recipe) => (
-            <article
-              key={recipe._id}
-              className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-            >
-              <Link
-                href={`/recept-detalj?id=${encodeURIComponent(recipe._id)}`}
-                className="block"
+        {isLibraryLoading && remoteRecipes.length === 0 ? (
+          <section className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <article
+                key={`library-skeleton-${index}`}
+                className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm"
               >
-                <img
-                  src={recipeImage(recipe)}
-                  alt={recipe.name}
-                  className="h-56 w-full object-cover"
-                  onError={(event) => {
-                    event.currentTarget.src = "/images/heroImageLandingPage.jpg";
-                  }}
-                />
-                <div className="p-5">
-                  <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-emerald-700">
-                    <span>{recipe.category || "Okategoriserat"}</span>
-                    {recipe.ownerName && <span>av {recipe.ownerName}</span>}
-                  </div>
-                  <h2 className="text-xl font-bold text-stone-950">{recipe.name}</h2>
-                  {recipe.description && (
-                    <p className="mt-2 line-clamp-3 text-sm leading-6 text-stone-600">
-                      {recipe.description}
-                    </p>
-                  )}
-                  <p className="mt-4 text-sm text-stone-500">
-                    {recipe.ingredients.length} ingredienser
-                    {recipe.portions ? ` · ${recipe.portions} portioner` : ""}
-                  </p>
+                <div className="h-56 w-full animate-pulse bg-stone-200" />
+                <div className="space-y-3 p-5">
+                  <div className="h-3 w-24 animate-pulse rounded-full bg-stone-200" />
+                  <div className="h-7 w-3/4 animate-pulse rounded-full bg-stone-200" />
+                  <div className="h-4 w-full animate-pulse rounded-full bg-stone-100" />
+                  <div className="h-4 w-5/6 animate-pulse rounded-full bg-stone-100" />
+                  <div className="h-4 w-2/5 animate-pulse rounded-full bg-stone-100" />
                 </div>
-              </Link>
-              <div className="border-t border-stone-100 px-5 py-3">
-                <button
-                  type="button"
-                  onClick={() => onToggleFavorite(recipe._id)}
-                  className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-emerald-700 hover:text-emerald-800"
+              </article>
+            ))}
+          </section>
+        ) : (
+          <section className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredRecipes.map((recipe) => (
+              <article
+                key={recipe._id}
+                className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              >
+                <Link
+                  href={`/recept-detalj?id=${encodeURIComponent(recipe._id)}`}
+                  className="block"
                 >
-                  {user
-                    ? favoriteIds.includes(recipe._id)
-                      ? "Sparad"
-                      : "Spara"
-                    : "Logga in för att spara"}
-                </button>
-              </div>
-            </article>
-          ))}
-        </section>
+                  <img
+                    src={recipeImage(recipe)}
+                    alt={recipe.name}
+                    className="h-56 w-full object-cover"
+                    onError={(event) => {
+                      event.currentTarget.src = "/images/heroImageLandingPage.jpg";
+                    }}
+                  />
+                  <div className="p-5">
+                    <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                      <span>{recipe.category || "Okategoriserat"}</span>
+                      {recipe.ownerName && <span>av {recipe.ownerName}</span>}
+                    </div>
+                    <h2 className="text-xl font-bold text-stone-950">{recipe.name}</h2>
+                    {recipe.description && (
+                      <p className="mt-2 line-clamp-3 text-sm leading-6 text-stone-600">
+                        {recipe.description}
+                      </p>
+                    )}
+                    <p className="mt-4 text-sm text-stone-500">
+                      {recipe.ingredients.length} ingredienser
+                      {recipe.portions ? ` · ${recipe.portions} portioner` : ""}
+                    </p>
+                  </div>
+                </Link>
+                <div className="border-t border-stone-100 px-5 py-3">
+                  <button
+                    type="button"
+                    onClick={() => onToggleFavorite(recipe._id)}
+                    className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-emerald-700 hover:text-emerald-800"
+                  >
+                    {user
+                      ? favoriteIds.includes(recipe._id)
+                        ? "Sparad"
+                        : "Spara"
+                      : "Logga in för att spara"}
+                  </button>
+                </div>
+              </article>
+            ))}
+          </section>
+        )}
 
-        {filteredRecipes.length === 0 && (
+        {!isLibraryLoading && filteredRecipes.length === 0 && (
           <section className="mt-8 rounded-lg border border-dashed border-stone-300 bg-white p-8 text-center">
             <h2 className="text-xl font-bold text-stone-950">Inga recept hittades</h2>
             <p className="mt-2 text-stone-600">
