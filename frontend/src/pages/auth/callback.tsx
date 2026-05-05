@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useRouter } from "next/router";
 import Navbar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
@@ -6,7 +6,15 @@ import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 
 const AuthCallback = () => {
   const router = useRouter();
-  const [error, setError] = useState("");
+  const error = (() => {
+    if (typeof window === "undefined") {
+      return "";
+    }
+
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    const errorDescription = hashParams.get("error_description");
+    return errorDescription ? errorDescription.replace(/\+/g, " ") : "";
+  })();
 
   useEffect(() => {
     if (!router.isReady) {
@@ -14,11 +22,7 @@ const AuthCallback = () => {
     }
 
     const nextPath = typeof router.query.next === "string" ? router.query.next : "/recept";
-    const hashParams = new URLSearchParams(window.location.hash.slice(1));
-    const errorDescription = hashParams.get("error_description");
-
-    if (errorDescription) {
-      setError(errorDescription.replace(/\+/g, " "));
+    if (error) {
       return;
     }
 
@@ -35,7 +39,7 @@ const AuthCallback = () => {
       .catch(() => {
         router.replace(`/login?confirmed=1&next=${encodeURIComponent(nextPath)}`);
       });
-  }, [router]);
+  }, [error, router]);
 
   return (
     <div className="min-h-screen bg-stone-50">

@@ -3,6 +3,11 @@
 Receptbok is a modern Next.js recipe app for public recipe browsing, user
 accounts, personal saved recipes, and iOS home-screen installation.
 
+## Project History and Branching
+
+- Version and feature branch imports are tracked in `VERSION_HISTORY.md`.
+- Contribution flow and branch practice are documented in `CONTRIBUTING.md`.
+
 ## Stack
 
 - Next.js, React, TypeScript
@@ -57,6 +62,8 @@ Set Supabase Authentication -> URL Configuration:
 ```bash
 cd frontend
 npm install
+npm run lint
+npm run build
 npm run dev
 ```
 

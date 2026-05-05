@@ -23,6 +23,37 @@ import {
 
 const libraryCacheKey = "receptbok-library-cache-v1";
 
+const readCachedRecipes = () => {
+  if (typeof window === "undefined") {
+    return [] as Recipe[];
+  }
+
+  try {
+    const cachedValue = window.localStorage.getItem(libraryCacheKey);
+
+    if (!cachedValue) {
+      return [] as Recipe[];
+    }
+
+    const parsedValue = JSON.parse(cachedValue);
+    return Array.isArray(parsedValue) ? parsedValue : [];
+  } catch {
+    return [] as Recipe[];
+  }
+};
+
+const writeCachedRecipes = (recipes: Recipe[]) => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(libraryCacheKey, JSON.stringify(recipes));
+  } catch {
+    // Ignore storage issues and keep the fresh data in memory.
+  }
+};
+
 const emptyDraft: RecipeDraft = {
   name: "",
   category: "",
@@ -36,7 +67,9 @@ const emptyDraft: RecipeDraft = {
 
 const ReceptPage = () => {
   const router = useRouter();
-  const [remoteRecipes, setRemoteRecipes] = useState<Recipe[]>([]);
+  const [remoteRecipes, setRemoteRecipes] = useState<Recipe[]>(() =>
+    readCachedRecipes()
+  );
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -48,43 +81,8 @@ const ReceptPage = () => {
   const [libraryStatus, setLibraryStatus] = useState("");
   const [isLibraryLoading, setIsLibraryLoading] = useState(true);
 
-  const readCachedRecipes = () => {
-    if (typeof window === "undefined") {
-      return [] as Recipe[];
-    }
-
-    try {
-      const cachedValue = window.localStorage.getItem(libraryCacheKey);
-
-      if (!cachedValue) {
-        return [] as Recipe[];
-      }
-
-      const parsedValue = JSON.parse(cachedValue);
-      return Array.isArray(parsedValue) ? parsedValue : [];
-    } catch {
-      return [] as Recipe[];
-    }
-  };
-
-  const writeCachedRecipes = (recipes: Recipe[]) => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    try {
-      window.localStorage.setItem(libraryCacheKey, JSON.stringify(recipes));
-    } catch {
-      // Ignore storage issues and keep the fresh data in memory.
-    }
-  };
-
   useEffect(() => {
     const cachedRecipes = readCachedRecipes();
-
-    if (cachedRecipes.length > 0) {
-      setRemoteRecipes(cachedRecipes);
-    }
 
     getCurrentUser()
       .then((currentUser) => {
