@@ -1,23 +1,27 @@
 import React, { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import Navbar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
 import {
   Recipe,
   RecipeDraft,
-  getFavoriteRecipeIds,
-  getLocalRecipes,
-  mergeRecipes,
   normalizeRecipe,
   recipeImage,
   recipeMatchesSearch,
-  saveLocalRecipe,
-  toggleFavoriteRecipe,
 } from "@/lib/recipes";
+import {
+  CurrentUser,
+  getCurrentUser,
+  loginRedirect,
+} from "@/lib/authClient";
+import {
+  createRecipe,
+  listRecipes,
+  setRecipeFavorite,
+} from "@/lib/supabaseRecipes";
 
-type Props = {
-  recipes: Recipe[];
-};
+const libraryCacheKey = "receptbok-library-cache-v1";
 
 const emptyDraft: RecipeDraft = {
   name: "",
@@ -30,47 +34,90 @@ const emptyDraft: RecipeDraft = {
   imageDataUrl: "",
 };
 
-const getBaseUrl = (req: any) => {
-  const protocol = req.headers["x-forwarded-proto"] || "http";
-  return `${protocol}://${req.headers.host}`;
-};
-
-export async function getServerSideProps({ req }: { req: any }) {
-  try {
-    const response = await fetch(`${getBaseUrl(req)}/api/recipes`);
-    const data = await response.json();
-
-    return {
-      props: {
-        recipes: Array.isArray(data) ? data.map(normalizeRecipe) : [],
-      },
-    };
-  } catch {
-    return {
-      props: { recipes: [] },
-    };
-  }
-}
-
-const ReceptPage = ({ recipes }: Props) => {
-  const [remoteRecipes, setRemoteRecipes] = useState<Recipe[]>(recipes);
-  const [localRecipes, setLocalRecipesState] = useState<Recipe[]>([]);
+const ReceptPage = () => {
+  const router = useRouter();
+  const [remoteRecipes, setRemoteRecipes] = useState<Recipe[]>([]);
+  const [user, setUser] = useState<CurrentUser | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Alla");
   const [draft, setDraft] = useState<RecipeDraft>(emptyDraft);
   const [formStatus, setFormStatus] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [favoriteStatus, setFavoriteStatus] = useState("");
+  const [libraryStatus, setLibraryStatus] = useState("");
+  const [isLibraryLoading, setIsLibraryLoading] = useState(true);
+
+  const readCachedRecipes = () => {
+    if (typeof window === "undefined") {
+      return [] as Recipe[];
+    }
+
+    try {
+      const cachedValue = window.localStorage.getItem(libraryCacheKey);
+
+      if (!cachedValue) {
+        return [] as Recipe[];
+      }
+
+      const parsedValue = JSON.parse(cachedValue);
+      return Array.isArray(parsedValue) ? parsedValue : [];
+    } catch {
+      return [] as Recipe[];
+    }
+  };
+
+  const writeCachedRecipes = (recipes: Recipe[]) => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(libraryCacheKey, JSON.stringify(recipes));
+    } catch {
+      // Ignore storage issues and keep the fresh data in memory.
+    }
+  };
 
   useEffect(() => {
-    setLocalRecipesState(getLocalRecipes());
-    setFavoriteIds(getFavoriteRecipeIds());
+    const cachedRecipes = readCachedRecipes();
+
+    if (cachedRecipes.length > 0) {
+      setRemoteRecipes(cachedRecipes);
+    }
+
+    getCurrentUser()
+      .then((currentUser) => {
+        setUser(currentUser);
+        setFavoriteIds(currentUser?.favoriteIds || []);
+      })
+      .catch(() => {
+        setUser(null);
+        setFavoriteIds([]);
+      });
+
+    listRecipes()
+      .then((recipes) => {
+        setRemoteRecipes(recipes);
+        writeCachedRecipes(recipes);
+        setLibraryStatus("");
+      })
+      .catch((error) => {
+        if (cachedRecipes.length === 0) {
+          setRemoteRecipes([]);
+          setLibraryStatus(
+            error instanceof Error ? error.message : "Biblioteket kunde inte laddas."
+          );
+        } else {
+          setLibraryStatus("");
+        }
+      })
+      .finally(() => {
+        setIsLibraryLoading(false);
+      });
   }, []);
 
-  const allRecipes = useMemo(
-    () => mergeRecipes(localRecipes, remoteRecipes),
-    [localRecipes, remoteRecipes]
-  );
+  const allRecipes = remoteRecipes;
 
   const categories = useMemo(() => {
     const recipeCategories = allRecipes
@@ -124,6 +171,11 @@ const ReceptPage = ({ recipes }: Props) => {
     setFormStatus("");
     setIsSaving(true);
 
+    if (!user) {
+      router.push(loginRedirect("/recept#nytt-recept"));
+      return;
+    }
+
     const recipePayload = normalizeRecipe({
       ...draft,
       ingredients: draft.ingredients,
@@ -139,38 +191,58 @@ const ReceptPage = ({ recipes }: Props) => {
     }
 
     try {
-      if (!draft.imageDataUrl) {
-        const response = await fetch("/api/recipes", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(recipePayload),
+      const savedRecipe = await createRecipe(recipePayload);
+      setSearchTerm("");
+      setSelectedCategory("Alla");
+      setLibraryStatus("");
+      setRemoteRecipes((current) => {
+        const nextRecipes = [
+          savedRecipe,
+          ...current.filter((recipe) => recipe._id !== savedRecipe._id),
+        ];
+        writeCachedRecipes(nextRecipes);
+        return nextRecipes;
+      });
+      void listRecipes()
+        .then((recipes) => {
+          setRemoteRecipes(recipes);
+          writeCachedRecipes(recipes);
+          setLibraryStatus("");
+        })
+        .catch((error) => {
+          setLibraryStatus(
+            error instanceof Error ? error.message : "Biblioteket kunde inte uppdateras."
+          );
         });
-
-        if (response.ok) {
-          const savedRecipe = normalizeRecipe(await response.json());
-          setRemoteRecipes((current) => [savedRecipe, ...current]);
-          setFormStatus("Receptet sparades.");
-          resetDraft();
-          return;
-        }
-      }
-
-      const localRecipe = saveLocalRecipe(draft);
-      setLocalRecipesState((current) => [localRecipe, ...current]);
-      setFormStatus("Receptet sparades på den här enheten.");
+      setFormStatus("Receptet är publicerat i biblioteket.");
       resetDraft();
-    } catch {
-      const localRecipe = saveLocalRecipe(draft);
-      setLocalRecipesState((current) => [localRecipe, ...current]);
-      setFormStatus("Receptet sparades på den här enheten.");
-      resetDraft();
+    } catch (error) {
+      setFormStatus(
+        error instanceof Error ? error.message : "Receptet kunde inte sparas."
+      );
     } finally {
       setIsSaving(false);
     }
   };
 
-  const onToggleFavorite = (recipeId: string) => {
-    setFavoriteIds(toggleFavoriteRecipe(recipeId));
+  const onToggleFavorite = async (recipeId: string) => {
+    setFavoriteStatus("");
+
+    if (!user) {
+      router.push(loginRedirect("/recept"));
+      return;
+    }
+
+    const isSaved = favoriteIds.includes(recipeId);
+    try {
+      setFavoriteIds(await setRecipeFavorite(recipeId, isSaved));
+    } catch (error) {
+      setFavoriteStatus(
+        error instanceof Error
+          ? error.message
+          : "Kunde inte uppdatera sparade recept."
+      );
+    }
   };
 
   return (
@@ -181,14 +253,14 @@ const ReceptPage = ({ recipes }: Props) => {
         <section className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
           <div>
             <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-emerald-700">
-              Din receptsamling
+              Allmänt bibliotek
             </p>
             <h1 className="max-w-3xl text-4xl font-bold tracking-tight text-stone-950 sm:text-5xl">
-              Spara, hitta och laga recepten du faktiskt vill komma tillbaka till.
+              Sök bland allas recept och spara dina egna favoriter.
             </h1>
             <p className="mt-4 max-w-2xl text-lg leading-8 text-stone-700">
-              Bygg upp en egen receptbok direkt i webben, med snabb sökning,
-              tydliga steg och sparade favoriter på mobilen.
+              Alla kan läsa biblioteket. Logga in för att lägga till egna recept
+              och spara andras recept till din personliga lista.
             </p>
           </div>
           <div className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm">
@@ -219,6 +291,24 @@ const ReceptPage = ({ recipes }: Props) => {
           </Link>
         </section>
 
+        {favoriteStatus && (
+          <p className="mt-4 rounded-md bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+            {favoriteStatus}
+          </p>
+        )}
+
+        {libraryStatus && (
+          <p className="mt-4 rounded-md bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            {libraryStatus}
+          </p>
+        )}
+
+        {isLibraryLoading && remoteRecipes.length > 0 && (
+          <p className="mt-4 text-sm font-medium text-stone-500">
+            Uppdaterar biblioteket...
+          </p>
+        )}
+
         <section className="mt-5 flex gap-2 overflow-x-auto pb-2">
           {categories.map((category) => (
             <button
@@ -236,56 +326,83 @@ const ReceptPage = ({ recipes }: Props) => {
           ))}
         </section>
 
-        <section className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredRecipes.map((recipe) => (
-            <article
-              key={recipe._id}
-              className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-            >
-              <Link href={`/recept/${recipe._id}`} className="block">
-                <img
-                  src={recipeImage(recipe)}
-                  alt={recipe.name}
-                  className="h-56 w-full object-cover"
-                  onError={(event) => {
-                    event.currentTarget.src = "/images/heroImageLandingPage.jpg";
-                  }}
-                />
-                <div className="p-5">
-                  <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-emerald-700">
-                    <span>{recipe.category || "Okategoriserat"}</span>
-                    {recipe.localOnly && <span>Lokalt</span>}
-                  </div>
-                  <h2 className="text-xl font-bold text-stone-950">{recipe.name}</h2>
-                  {recipe.description && (
-                    <p className="mt-2 line-clamp-3 text-sm leading-6 text-stone-600">
-                      {recipe.description}
-                    </p>
-                  )}
-                  <p className="mt-4 text-sm text-stone-500">
-                    {recipe.ingredients.length} ingredienser
-                    {recipe.portions ? ` · ${recipe.portions} portioner` : ""}
-                  </p>
+        {isLibraryLoading && remoteRecipes.length === 0 ? (
+          <section className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <article
+                key={`library-skeleton-${index}`}
+                className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm"
+              >
+                <div className="h-56 w-full animate-pulse bg-stone-200" />
+                <div className="space-y-3 p-5">
+                  <div className="h-3 w-24 animate-pulse rounded-full bg-stone-200" />
+                  <div className="h-7 w-3/4 animate-pulse rounded-full bg-stone-200" />
+                  <div className="h-4 w-full animate-pulse rounded-full bg-stone-100" />
+                  <div className="h-4 w-5/6 animate-pulse rounded-full bg-stone-100" />
+                  <div className="h-4 w-2/5 animate-pulse rounded-full bg-stone-100" />
                 </div>
-              </Link>
-              <div className="border-t border-stone-100 px-5 py-3">
-                <button
-                  type="button"
-                  onClick={() => onToggleFavorite(recipe._id)}
-                  className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-emerald-700 hover:text-emerald-800"
+              </article>
+            ))}
+          </section>
+        ) : (
+          <section className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredRecipes.map((recipe) => (
+              <article
+                key={recipe._id}
+                className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              >
+                <Link
+                  href={`/recept-detalj?id=${encodeURIComponent(recipe._id)}`}
+                  className="block"
                 >
-                  {favoriteIds.includes(recipe._id) ? "Sparad" : "Spara"}
-                </button>
-              </div>
-            </article>
-          ))}
-        </section>
+                  <img
+                    src={recipeImage(recipe)}
+                    alt={recipe.name}
+                    className="h-56 w-full object-cover"
+                    onError={(event) => {
+                      event.currentTarget.src = "/images/heroImageLandingPage.jpg";
+                    }}
+                  />
+                  <div className="p-5">
+                    <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                      <span>{recipe.category || "Okategoriserat"}</span>
+                      {recipe.ownerName && <span>av {recipe.ownerName}</span>}
+                    </div>
+                    <h2 className="text-xl font-bold text-stone-950">{recipe.name}</h2>
+                    {recipe.description && (
+                      <p className="mt-2 line-clamp-3 text-sm leading-6 text-stone-600">
+                        {recipe.description}
+                      </p>
+                    )}
+                    <p className="mt-4 text-sm text-stone-500">
+                      {recipe.ingredients.length} ingredienser
+                      {recipe.portions ? ` · ${recipe.portions} portioner` : ""}
+                    </p>
+                  </div>
+                </Link>
+                <div className="border-t border-stone-100 px-5 py-3">
+                  <button
+                    type="button"
+                    onClick={() => onToggleFavorite(recipe._id)}
+                    className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-emerald-700 hover:text-emerald-800"
+                  >
+                    {user
+                      ? favoriteIds.includes(recipe._id)
+                        ? "Sparad"
+                        : "Spara"
+                      : "Logga in för att spara"}
+                  </button>
+                </div>
+              </article>
+            ))}
+          </section>
+        )}
 
-        {filteredRecipes.length === 0 && (
+        {!isLibraryLoading && filteredRecipes.length === 0 && (
           <section className="mt-8 rounded-lg border border-dashed border-stone-300 bg-white p-8 text-center">
             <h2 className="text-xl font-bold text-stone-950">Inga recept hittades</h2>
             <p className="mt-2 text-stone-600">
-              Testa en annan sökning eller lägg till ett nytt recept.
+              Testa en annan sökning eller logga in och lägg till ett nytt recept.
             </p>
           </section>
         )}
@@ -303,6 +420,31 @@ const ReceptPage = ({ recipes }: Props) => {
             </h2>
           </div>
 
+          {!user ? (
+            <div className="rounded-lg border border-dashed border-stone-300 bg-stone-50 p-6">
+              <h3 className="text-xl font-bold text-stone-950">
+                Logga in för att lägga till recept
+              </h3>
+              <p className="mt-2 text-stone-600">
+                Biblioteket är öppet för alla att läsa, men nya recept kopplas
+                till ditt konto.
+              </p>
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href={loginRedirect("/recept#nytt-recept")}
+                  className="inline-flex h-12 items-center justify-center rounded-full bg-emerald-700 px-6 text-sm font-semibold text-white"
+                >
+                  Logga in
+                </Link>
+                <Link
+                  href={`/register?next=${encodeURIComponent("/recept#nytt-recept")}`}
+                  className="inline-flex h-12 items-center justify-center rounded-full border border-stone-300 px-6 text-sm font-semibold text-stone-800"
+                >
+                  Skapa konto
+                </Link>
+              </div>
+            </div>
+          ) : (
           <form onSubmit={onSubmit} className="grid gap-5">
             <div className="grid gap-5 md:grid-cols-2">
               <label className="grid gap-2 text-sm font-medium text-stone-700">
@@ -378,7 +520,7 @@ const ReceptPage = ({ recipes }: Props) => {
 
             <div className="grid gap-5 md:grid-cols-2">
               <label className="grid gap-2 text-sm font-medium text-stone-700">
-                Bildlank
+                Bildlänk
                 <input
                   name="imageUrl"
                   type="url"
@@ -389,7 +531,7 @@ const ReceptPage = ({ recipes }: Props) => {
                 />
               </label>
               <label className="grid gap-2 text-sm font-medium text-stone-700">
-                Bild fran mobilen
+                Bild från mobilen
                 <input
                   type="file"
                   accept="image/*"
@@ -420,6 +562,7 @@ const ReceptPage = ({ recipes }: Props) => {
               )}
             </div>
           </form>
+          )}
         </section>
       </main>
 

@@ -5,51 +5,54 @@ import Navbar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
 import {
   Recipe,
-  getFavoriteRecipeIds,
-  getLocalRecipes,
   normalizeRecipe,
   recipeImage,
-  toggleFavoriteRecipe,
 } from "@/lib/recipes";
+import {
+  CurrentUser,
+  getCurrentUser,
+  loginRedirect,
+} from "@/lib/authClient";
+import { getRecipeById, setRecipeFavorite } from "@/lib/supabaseRecipes";
 
 const ReceptDetalj = () => {
   const router = useRouter();
-  const { id } = router.query;
+  const id = typeof router.query.id === "string" ? router.query.id : "";
   const [recipe, setRecipe] = useState<Recipe | null>(null);
+  const [user, setUser] = useState<CurrentUser | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [checkedSteps, setCheckedSteps] = useState<Record<number, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    setFavoriteIds(getFavoriteRecipeIds());
+    getCurrentUser()
+      .then((currentUser) => {
+        setUser(currentUser);
+        setFavoriteIds(currentUser?.favoriteIds || []);
+      })
+      .catch(() => {
+        setUser(null);
+        setFavoriteIds([]);
+      });
   }, []);
 
   useEffect(() => {
     const loadRecipe = async () => {
-      if (!id || typeof id !== "string") {
+      if (!id) {
         return;
       }
 
       setIsLoading(true);
       setError("");
 
-      const localRecipe = getLocalRecipes().find((item) => item._id === id);
-      if (localRecipe) {
-        setRecipe(localRecipe);
-        setCheckedSteps({});
-        setIsLoading(false);
-        return;
-      }
-
       try {
-        const response = await fetch(`/api/recipes/${id}`);
-
-        if (!response.ok) {
+        const loadedRecipe = await getRecipeById(id);
+        if (!loadedRecipe) {
           throw new Error("Receptet kunde inte hämtas.");
         }
 
-        setRecipe(normalizeRecipe(await response.json()));
+        setRecipe(normalizeRecipe(loadedRecipe));
         setCheckedSteps({});
       } catch {
         setError("Receptet kunde inte hittas.");
@@ -73,12 +76,22 @@ const ReceptDetalj = () => {
     }));
   };
 
-  const toggleFavorite = () => {
+  const toggleFavorite = async () => {
     if (!recipe) {
       return;
     }
 
-    setFavoriteIds(toggleFavoriteRecipe(recipe._id));
+    if (!user) {
+      router.push(loginRedirect(`/recept/${recipe._id}`));
+      return;
+    }
+
+    const isSaved = favoriteIds.includes(recipe._id);
+    try {
+      setFavoriteIds(await setRecipeFavorite(recipe._id, isSaved));
+    } catch {
+      // Knappen kan testas igen om nätet tillfälligt strular.
+    }
   };
 
   if (isLoading) {
@@ -142,9 +155,9 @@ const ReceptDetalj = () => {
               <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-800">
                 {recipe.category || "Okategoriserat"}
               </span>
-              {recipe.localOnly && (
+              {recipe.ownerName && (
                 <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-semibold text-amber-800">
-                  Sparat lokalt
+                  av {recipe.ownerName}
                 </span>
               )}
             </div>
@@ -179,7 +192,7 @@ const ReceptDetalj = () => {
               onClick={toggleFavorite}
               className="mt-6 inline-flex h-12 items-center justify-center rounded-full border border-stone-300 bg-white px-6 text-sm font-semibold text-stone-800 shadow-sm transition hover:border-emerald-700 hover:text-emerald-800"
             >
-              {isFavorite ? "Sparad" : "Spara recept"}
+              {user ? (isFavorite ? "Sparad" : "Spara recept") : "Logga in för att spara"}
             </button>
           </div>
         </section>

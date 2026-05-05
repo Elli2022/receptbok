@@ -6,25 +6,18 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import {
   Recipe,
-  getLocalRecipes,
-  mergeRecipes,
-  normalizeRecipe,
   recipeImage,
 } from "@/lib/recipes";
+import { listRecipes } from "@/lib/supabaseRecipes";
 
 const Home = () => {
   const [remoteRecipes, setRemoteRecipes] = useState<Recipe[]>([]);
-  const [localRecipes, setLocalRecipes] = useState<Recipe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setLocalRecipes(getLocalRecipes());
-
     const fetchRecipes = async () => {
       try {
-        const response = await fetch("/api/recipes");
-        const data = await response.json();
-        setRemoteRecipes(Array.isArray(data) ? data.map(normalizeRecipe) : []);
+        setRemoteRecipes(await listRecipes());
       } catch {
         setRemoteRecipes([]);
       } finally {
@@ -35,10 +28,7 @@ const Home = () => {
     fetchRecipes();
   }, []);
 
-  const recipes = useMemo(
-    () => mergeRecipes(localRecipes, remoteRecipes),
-    [localRecipes, remoteRecipes]
-  );
+  const recipes = useMemo(() => remoteRecipes, [remoteRecipes]);
 
   const featuredRecipes = recipes.slice(0, 3);
   const categories = Array.from(
@@ -62,11 +52,11 @@ const Home = () => {
               Receptbok
             </p>
             <h1 className="max-w-3xl text-5xl font-bold tracking-tight sm:text-6xl">
-              Din egen receptapp för vardag, helg och allt gott däremellan.
+              Ett gemensamt receptbibliotek med dina egna sparade favoriter.
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-stone-100">
-              Lägg till recept utan adminläge, spara favoriter och ha snabb
-              åtkomst från mobilen när sidan är publicerad.
+              Alla kan söka bland recepten. Logga in för att lägga till egna
+              recept och spara favoriter till ditt konto.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
@@ -128,7 +118,7 @@ const Home = () => {
               {featuredRecipes.map((recipe) => (
                 <Link
                   key={recipe._id}
-                  href={`/recept/${recipe._id}`}
+                  href={`/recept-detalj?id=${encodeURIComponent(recipe._id)}`}
                   className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
                 >
                   <img

@@ -1,4 +1,4 @@
-const CACHE_NAME = "receptbok-v1";
+const CACHE_NAME = "receptbok-v6";
 const APP_SHELL = [
   "/",
   "/recept",
@@ -33,6 +33,12 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
 
   if (request.method !== "GET") {
+    return;
+  }
+
+  const requestUrl = new URL(request.url);
+
+  if (requestUrl.origin !== self.location.origin) {
     return;
   }
 

@@ -1,13 +1,29 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { CurrentUser, getCurrentUser } from "@/lib/authClient";
+import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
 
 const Navbar = () => {
+  const [user, setUser] = useState<CurrentUser | null>(null);
+
   const links = [
     { href: "/", label: "Hem" },
-    { href: "/recept", label: "Recept" },
+    { href: "/recept", label: "Bibliotek" },
     { href: "/sparade", label: "Sparade" },
     { href: "/about", label: "Om" },
   ];
+
+  useEffect(() => {
+    getCurrentUser().then(setUser).catch(() => setUser(null));
+  }, []);
+
+  const logout = async () => {
+    await getSupabaseBrowserClient().auth.signOut();
+    setUser(null);
+    window.location.href = "/recept";
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-stone-200 bg-white/95 backdrop-blur">
@@ -32,6 +48,22 @@ const Navbar = () => {
           >
             Nytt recept
           </Link>
+          {user ? (
+            <button
+              type="button"
+              onClick={logout}
+              className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-stone-500"
+            >
+              Logga ut
+            </button>
+          ) : (
+            <Link
+              href="/login"
+              className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-stone-500"
+            >
+              Logga in
+            </Link>
+          )}
         </div>
       </nav>
     </header>
