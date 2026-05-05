@@ -8,10 +8,9 @@ export type Recipe = {
   instructions: string[];
   image?: string;
   source_image?: string;
-  ownerId?: string;
-  ownerName?: string;
   createdAt?: string;
   localOnly?: boolean;
+  originalRecipeId?: string | null;
 };
 
 export type RecipeDraft = {
@@ -24,6 +23,9 @@ export type RecipeDraft = {
   imageUrl: string;
   imageDataUrl?: string;
 };
+
+const LOCAL_RECIPES_KEY = "receptbok.localRecipes.v1";
+const FAVORITES_KEY = "receptbok.favoriteRecipeIds.v1";
 
 const splitList = (value: unknown) => {
   if (Array.isArray(value)) {
@@ -41,7 +43,7 @@ const splitList = (value: unknown) => {
 };
 
 export const normalizeRecipe = (recipe: any): Recipe => ({
-  _id: String(recipe?._id ?? `local-${Date.now()}`),
+  _id: String(recipe?._id ?? recipe?.id ?? `local-${Date.now()}`),
   name: String(recipe?.name ?? "Namnlöst recept"),
   category: recipe?.category ? String(recipe.category) : "Okategoriserat",
   portions: recipe?.portions ?? "",
@@ -50,10 +52,11 @@ export const normalizeRecipe = (recipe: any): Recipe => ({
   instructions: splitList(recipe?.instructions),
   image: recipe?.image ? String(recipe.image) : "",
   source_image: recipe?.source_image ? String(recipe.source_image) : "",
-  ownerId: recipe?.ownerId ? String(recipe.ownerId) : "",
-  ownerName: recipe?.ownerName ? String(recipe.ownerName) : "",
   createdAt: recipe?.createdAt ? String(recipe.createdAt) : new Date().toISOString(),
   localOnly: Boolean(recipe?.localOnly),
+  originalRecipeId: recipe?.originalRecipeId
+    ? String(recipe.originalRecipeId)
+    : null,
 });
 
 export const recipeImage = (recipe: Recipe) =>
@@ -77,4 +80,132 @@ export const recipeMatchesSearch = (recipe: Recipe, searchTerm: string) => {
     .join(" ")
     .toLowerCase()
     .includes(query);
+};
+
+export const getLocalRecipes = (): Recipe[] => {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const storedRecipes = window.localStorage.getItem(LOCAL_RECIPES_KEY);
+    return storedRecipes
+      ? JSON.parse(storedRecipes).map((recipe: unknown) =>
+          normalizeRecipe({ ...(recipe as object), localOnly: true })
+        )
+      : [];
+  } catch {
+    return [];
+  }
+};
+
+export const setLocalRecipes = (recipes: Recipe[]) => {
+  window.localStorage.setItem(LOCAL_RECIPES_KEY, JSON.stringify(recipes));
+};
+
+export const saveLocalRecipe = (draft: RecipeDraft): Recipe => {
+  const recipe = normalizeRecipe({
+    _id: `local-${Date.now()}`,
+    name: draft.name,
+    category: draft.category,
+    portions: Number(draft.portions) || draft.portions,
+    description: draft.description,
+    ingredients: draft.ingredients,
+    instructions: draft.instructions,
+    image: draft.imageDataUrl || draft.imageUrl,
+    source_image: draft.imageDataUrl ? "Egen bild" : draft.imageUrl,
+    createdAt: new Date().toISOString(),
+    localOnly: true,
+  });
+
+  const recipes = [recipe, ...getLocalRecipes()];
+  setLocalRecipes(recipes);
+
+  return recipe;
+};
+
+export const saveLocalRecipeCopy = (
+  recipe: Recipe,
+  options?: { ownerUserId?: string }
+): Recipe => {
+  const copy = normalizeRecipe({
+    _id: `local-${Date.now()}`,
+    name: recipe.name,
+    category: recipe.category,
+    portions: recipe.portions,
+    description: recipe.description,
+    ingredients: recipe.ingredients,
+    instructions: recipe.instructions,
+    image: recipe.image,
+    source_image: recipe.source_image,
+    createdAt: new Date().toISOString(),
+    localOnly: true,
+    originalRecipeId: recipe.originalRecipeId ?? recipe._id,
+    ownerUserId: options?.ownerUserId,
+  });
+
+  const recipes = [copy, ...getLocalRecipes()];
+  setLocalRecipes(recipes);
+  return copy;
+};
+
+export const updateLocalRecipe = (
+  recipeId: string,
+  updates: Partial<Recipe>
+): Recipe | null => {
+  const recipes = getLocalRecipes();
+  const index = recipes.findIndex((item) => item._id === recipeId);
+  if (index < 0) {
+    return null;
+  }
+
+  const updatedRecipe = normalizeRecipe({
+    ...recipes[index],
+    ...updates,
+    localOnly: true,
+  });
+
+  recipes[index] = updatedRecipe;
+  setLocalRecipes(recipes);
+  return updatedRecipe;
+};
+
+export const getFavoriteRecipeIds = (): string[] => {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const favorites = window.localStorage.getItem(FAVORITES_KEY);
+    return favorites ? JSON.parse(favorites) : [];
+  } catch {
+    return [];
+  }
+};
+
+export const setFavoriteRecipeIds = (recipeIds: string[]) => {
+  window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(recipeIds));
+};
+
+export const toggleFavoriteRecipe = (recipeId: string) => {
+  const favorites = getFavoriteRecipeIds();
+  const nextFavorites = favorites.includes(recipeId)
+    ? favorites.filter((id) => id !== recipeId)
+    : [recipeId, ...favorites];
+
+  setFavoriteRecipeIds(nextFavorites);
+  return nextFavorites;
+};
+
+export const mergeRecipes = (primary: Recipe[], secondary: Recipe[]) => {
+  const seen = new Set<string>();
+
+  return [...primary, ...secondary].filter((recipe) => {
+    if (seen.has(recipe._id)) {
+      return false;
+    }
+
+    seen.add(recipe._id);
+    return true;
+  });
 };

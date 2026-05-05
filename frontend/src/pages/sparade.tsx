@@ -1,58 +1,112 @@
-import React, { useEffect, useState } from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import Navbar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
-import { Recipe, recipeImage } from "@/lib/recipes";
 import {
-  CurrentUser,
-  getCurrentUser,
-  loginRedirect,
-} from "@/lib/authClient";
-import { listSavedRecipes, setRecipeFavorite } from "@/lib/supabaseRecipes";
+  Recipe,
+  getLocalRecipes,
+  mergeRecipes,
+  normalizeRecipe,
+  recipeImage,
+  saveLocalRecipeCopy,
+} from "@/lib/recipes";
+import { getStoredUser } from "@/lib/auth/local-user";
+import { useLoggedIn } from "@/lib/auth/use-logged-in";
 
-const SparadePage = () => {
-  const [user, setUser] = useState<CurrentUser | null>(null);
-  const [savedRecipes, setSavedRecipes] = useState<Recipe[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
+type Props = {
+  recipes: Recipe[];
+};
 
-  useEffect(() => {
-    const loadSavedRecipes = async () => {
-      setIsLoading(true);
-      setError("");
+const getBaseUrl = (req: any) => {
+  const protocol = req.headers["x-forwarded-proto"] || "http";
+  return `${protocol}://${req.headers.host}`;
+};
 
-      try {
-        const currentUser = await getCurrentUser();
+export async function getServerSideProps({ req }: { req: any }) {
+  try {
+    const response = await fetch(`${getBaseUrl(req)}/api/recipes`);
+    const data = await response.json();
 
-        if (!currentUser) {
-          setUser(null);
-          setSavedRecipes([]);
-          return;
-        }
-
-        setUser(currentUser);
-        setSavedRecipes(await listSavedRecipes());
-      } catch (error) {
-        setError(
-          error instanceof Error ? error.message : "Kunde inte hämta sparade recept."
-        );
-      } finally {
-        setIsLoading(false);
-      }
+    return {
+      props: {
+        recipes: Array.isArray(data) ? data.map(normalizeRecipe) : [],
+      },
     };
+  } catch {
+    return {
+      props: { recipes: [] },
+    };
+  }
+}
 
-    loadSavedRecipes();
+const SparadePage = ({ recipes }: Props) => {
+  const [localRecipes, setLocalRecipesState] = useState<Recipe[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const isLoggedIn = useLoggedIn();
+
+  React.useEffect(() => {
+    setLocalRecipesState(getLocalRecipes());
   }, []);
 
-  const removeFavorite = async (recipeId: string) => {
-    try {
-      await setRecipeFavorite(recipeId, true);
-      setSavedRecipes((current) => current.filter((recipe) => recipe._id !== recipeId));
-    } catch (error) {
-      setError(
-        error instanceof Error ? error.message : "Kunde inte ta bort receptet."
-      );
+  React.useEffect(() => {
+    if (!isLoggedIn) {
+      return;
     }
+    (async () => {
+      try {
+        const response = await fetch("/api/favorites", { credentials: "include" });
+        if (!response.ok) {
+          return;
+        }
+        const data = await response.json();
+        setFavoriteIds(Array.isArray(data.recipeIds) ? data.recipeIds : []);
+      } catch {
+        // ignore
+      }
+    })();
+  }, [isLoggedIn]);
+
+  const allRecipes = useMemo(
+    () => mergeRecipes(localRecipes, recipes),
+    [localRecipes, recipes]
+  );
+
+  const savedRecipes = useMemo(
+    () =>
+      allRecipes.filter(
+        (recipe) => favoriteIds.includes(recipe._id) || recipe.localOnly
+      ),
+    [allRecipes, favoriteIds]
+  );
+
+  const onToggleFavorite = (recipeId: string) => {
+    if (!isLoggedIn) {
+      return;
+    }
+    (async () => {
+      try {
+        const response = await fetch(`/api/favorites/${recipeId}`, {
+          method: "DELETE",
+          credentials: "include",
+        });
+        if (!response.ok) {
+          return;
+        }
+        setFavoriteIds((current) => current.filter((id) => id !== recipeId));
+      } catch {
+        // ignore
+      }
+    })();
+  };
+
+  const onCreateMyVersion = (recipe: Recipe) => {
+    if (!isLoggedIn) {
+      return;
+    }
+    const localCopy = saveLocalRecipeCopy(recipe, {
+      ownerUserId: getStoredUser()?.id,
+    });
+    setLocalRecipesState((current) => [localCopy, ...current]);
   };
 
   return (
@@ -65,44 +119,26 @@ const SparadePage = () => {
             Sparade recept
           </p>
           <h1 className="text-4xl font-bold tracking-tight text-stone-950 sm:text-5xl">
-            Din personliga receptlista.
+            Dina favoriter och egna recept.
           </h1>
           <p className="mt-4 text-lg leading-8 text-stone-700">
-            Här hamnar recept du har sparat från det allmänna biblioteket.
+            Här samlas recepten du har sparat och recepten du har lagt till på
+            enheten.
           </p>
         </section>
 
-        {isLoading ? (
-          <p className="mt-8 rounded-lg border border-stone-200 bg-white p-6 text-stone-700">
-            Hämtar sparade recept...
-          </p>
-        ) : !user ? (
+        {!isLoggedIn ? (
           <section className="mt-8 rounded-lg border border-dashed border-stone-300 bg-white p-8 text-center">
-            <h2 className="text-xl font-bold text-stone-950">
-              Logga in för att se sparade recept
-            </h2>
+            <h2 className="text-xl font-bold text-stone-950">Logga in för sparade recept</h2>
             <p className="mt-2 text-stone-600">
-              Dina sparade recept hör till ditt konto.
+              Sparade favoriter ar kopplade till ditt konto i inloggat lage.
             </p>
-            <div className="mt-5 flex flex-col justify-center gap-3 sm:flex-row">
-              <Link
-                href={loginRedirect("/sparade")}
-                className="inline-flex rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white"
-              >
-                Logga in
-              </Link>
-              <Link
-                href={`/register?next=${encodeURIComponent("/sparade")}`}
-                className="inline-flex rounded-full border border-stone-300 px-5 py-3 text-sm font-semibold text-stone-800"
-              >
-                Skapa konto
-              </Link>
-            </div>
-          </section>
-        ) : error ? (
-          <section className="mt-8 rounded-lg border border-stone-200 bg-white p-8 text-center">
-            <h2 className="text-xl font-bold text-stone-950">Något gick fel</h2>
-            <p className="mt-2 text-stone-600">{error}</p>
+            <Link
+              href="/login"
+              className="mt-5 inline-flex rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white"
+            >
+              Logga in
+            </Link>
           </section>
         ) : savedRecipes.length > 0 ? (
           <section className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -111,10 +147,7 @@ const SparadePage = () => {
                 key={recipe._id}
                 className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
               >
-                <Link
-                  href={`/recept-detalj?id=${encodeURIComponent(recipe._id)}`}
-                  className="block"
-                >
+                <Link href={`/recept/${recipe._id}`} className="block">
                   <img
                     src={recipeImage(recipe)}
                     alt={recipe.name}
@@ -126,7 +159,7 @@ const SparadePage = () => {
                   <div className="p-5">
                     <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-emerald-700">
                       <span>{recipe.category || "Okategoriserat"}</span>
-                      {recipe.ownerName && <span>av {recipe.ownerName}</span>}
+                      {recipe.localOnly && <span>Lokalt</span>}
                     </div>
                     <h2 className="text-xl font-bold text-stone-950">{recipe.name}</h2>
                     {recipe.description && (
@@ -136,13 +169,21 @@ const SparadePage = () => {
                     )}
                   </div>
                 </Link>
-                <div className="border-t border-stone-100 px-5 py-3">
+                <div className="flex items-center justify-between border-t border-stone-100 px-5 py-3">
                   <button
                     type="button"
-                    onClick={() => removeFavorite(recipe._id)}
-                    className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-emerald-700 hover:text-emerald-800"
+                    onClick={() => onToggleFavorite(recipe._id)}
+                    aria-label="Ta bort från sparade"
+                    className="text-2xl leading-none text-rose-600 transition hover:text-rose-700"
                   >
-                    Ta bort från sparade
+                    ♥
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onCreateMyVersion(recipe)}
+                    className="rounded-full border border-stone-300 px-4 py-2 text-xs font-semibold text-stone-700 transition hover:border-emerald-700 hover:text-emerald-800"
+                  >
+                    Egen version
                   </button>
                 </div>
               </article>
@@ -154,13 +195,13 @@ const SparadePage = () => {
               Du har inga sparade recept än
             </h2>
             <p className="mt-2 text-stone-600">
-              Gå till biblioteket och spara recept du vill laga igen.
+              Gå till receptsidan och spara dina favoriter.
             </p>
             <Link
               href="/recept"
               className="mt-5 inline-flex rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white"
             >
-              Visa biblioteket
+              Visa recept
             </Link>
           </section>
         )}

@@ -1,75 +1,88 @@
 # Receptbok
 
-Receptbok is a modern Next.js recipe app for public recipe browsing, user
-accounts, personal saved recipes, and iOS home-screen installation.
+Modern Next.js‑app för publika recept, kontoinloggning, sparade favoriter och PWA på mobil.
 
-## Project History and Branching
+## Projekt och branching
 
-- Version and feature branch imports are tracked in `VERSION_HISTORY.md`.
-- Contribution flow and branch practice are documented in `CONTRIBUTING.md`.
+- Versionshistorik: `VERSION_HISTORY.md`
+- Bidrag: `CONTRIBUTING.md`
 
 ## Stack
 
-- Next.js, React, TypeScript
-- Tailwind CSS
-- Supabase Auth and Supabase Postgres
-- Netlify hosting
-- PWA support for iOS and mobile browsers
-
-## Netlify
-
-This repository is prepared for Netlify through `netlify.toml` in the
-repository root:
-
-- Base directory: `frontend`
-- Build command: `npm run build`
-- Publish directory: `.next`
-- Node version: `22`
-
-Add these environment variables in Netlify:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
-```
-
-Do not commit Supabase secret keys, database strings, AWS keys, or other
-secrets. The app does not need `SUPABASE_SECRET_KEY` for normal login,
-registration, public recipe search, or saved recipes.
+- Next.js, React, TypeScript  
+- Tailwind CSS  
+- Supabase (Postgres + Auth) via Next.js API‑routes  
+- Netlify (se `netlify.toml`)  
+- PWA
 
 ## Supabase
 
-Run `supabase/schema.sql` in Supabase SQL Editor before using the hosted app.
-It creates:
+1. Skapa projekt på [supabase.com](https://supabase.com).
+2. Kör SQL från `supabase/migrations/` i ordning (se [supabase/README.md](supabase/README.md)). Övriga `.sql` i `supabase/` är äldre patchar vid behov.
+3. Under utveckling kan du stänga av **Confirm email** under Authentication → Providers om du vill att `signUp` direkt får session.
 
-- public profiles for display names
-- public recipes that everyone can search and read
-- saved recipes that only the logged-in user can access
-- Row Level Security policies for reading, saving, creating, updating, and
-  deleting records safely
-
-Set Supabase Authentication -> URL Configuration:
-
-- Site URL: `https://ellisreceptbok.netlify.app`
-- Redirect URLs:
-  - `https://ellisreceptbok.netlify.app/**`
-  - `https://supabase-recipe-library--ellisreceptbok.netlify.app/**`
-  - `https://**--ellisreceptbok.netlify.app/**`
-  - `http://localhost:3000/**`
-
-## Local Development
+## Snabbstart (frontend)
 
 ```bash
 cd frontend
 npm install
+cp .env.example .env.local
+# Fyll i NEXT_PUBLIC_SUPABASE_* och SUPABASE_SERVICE_ROLE_KEY (se supabase/README.md)
 npm run lint
 npm run build
 npm run dev
 ```
 
-Create `frontend/.env.local` with the same Supabase variables used in Netlify.
+Öppna [http://localhost:3000](http://localhost:3000).
 
-## Mobile App Mode
+## Migrera gamla recept (Mongo → Supabase)
 
-After deploying to Netlify, open the HTTPS site in Safari on iPhone or iPad and
-choose Share -> Add to Home Screen.
+```bash
+cd frontend
+LEGACY_RECIPES_URL=http://localhost:3001/recipes npm run migrate:recipes
+```
+
+Alternativt:
+
+```bash
+BACKEND_URL=https://din-gamla-backend.example.com npm run migrate:recipes
+```
+
+Verifiera:
+
+```bash
+npm run verify:supabase
+```
+
+## Netlify
+
+`netlify.toml`: base `frontend`, build `npm run build`, publicera `.next`, Node 22.
+
+Lägg samma Supabase‑variabler som lokalt under **Site settings → Environment variables**.  
+Exponera **inte** `SUPABASE_SERVICE_ROLE_KEY` som `NEXT_PUBLIC_*`.
+
+## Mobile app mode
+
+Efter deploy: öppna sajten i Safari på iPhone/iPad → Dela → **Lägg till på hemskärmen**.
+
+## API (Next.js)
+
+| Metod | Route | Beskrivning |
+|--------|--------|-------------|
+| GET / POST | `/api/recipes` | Lista publika / skapa (inloggning) |
+| GET / PUT / DELETE | `/api/recipes/[id]` | Ett recept |
+| GET / POST | `/api/favorites` | Favorit‑id / spara |
+| DELETE | `/api/favorites/[id]` | Ta bort favorit |
+| POST | `/api/auth/login` | Inloggning (cookies) |
+| POST | `/api/users` | Registrering |
+
+## Mappen `backend/`
+
+Express + MongoDB + S3 är **inaktuellt** för detta flöde; källan för recept/auth är Supabase.
+
+## Versioner, CI och övrigt
+
+- SemVer och releaser: `CHANGELOG.md`, `RELEASING.md`
+- CI: GitHub Actions — frontend `lint` + `build`
+- **Licens:** `LICENSE` (ISC)
+- **Säkerhet:** `SECURITY.md`

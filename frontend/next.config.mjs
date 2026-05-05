@@ -5,7 +5,6 @@ const appRoot = dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "export",
   reactStrictMode: true,
   turbopack: {
     root: appRoot,

@@ -6,52 +6,19 @@ import Footer from "@/app/components/Footer";
 import {
   Recipe,
   RecipeDraft,
+  getLocalRecipes,
+  mergeRecipes,
   normalizeRecipe,
   recipeImage,
   recipeMatchesSearch,
+  saveLocalRecipe,
+  saveLocalRecipeCopy,
 } from "@/lib/recipes";
-import {
-  CurrentUser,
-  getCurrentUser,
-  loginRedirect,
-} from "@/lib/authClient";
-import {
-  createRecipe,
-  listRecipes,
-  setRecipeFavorite,
-} from "@/lib/supabaseRecipes";
+import { getStoredUser } from "@/lib/auth/local-user";
+import { useLoggedIn } from "@/lib/auth/use-logged-in";
 
-const libraryCacheKey = "receptbok-library-cache-v1";
-
-const readCachedRecipes = () => {
-  if (typeof window === "undefined") {
-    return [] as Recipe[];
-  }
-
-  try {
-    const cachedValue = window.localStorage.getItem(libraryCacheKey);
-
-    if (!cachedValue) {
-      return [] as Recipe[];
-    }
-
-    const parsedValue = JSON.parse(cachedValue);
-    return Array.isArray(parsedValue) ? parsedValue : [];
-  } catch {
-    return [] as Recipe[];
-  }
-};
-
-const writeCachedRecipes = (recipes: Recipe[]) => {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  try {
-    window.localStorage.setItem(libraryCacheKey, JSON.stringify(recipes));
-  } catch {
-    // Ignore storage issues and keep the fresh data in memory.
-  }
+type Props = {
+  recipes: Recipe[];
 };
 
 const emptyDraft: RecipeDraft = {
@@ -65,57 +32,75 @@ const emptyDraft: RecipeDraft = {
   imageDataUrl: "",
 };
 
-const ReceptPage = () => {
+const getBaseUrl = (req: any) => {
+  const protocol = req.headers["x-forwarded-proto"] || "http";
+  return `${protocol}://${req.headers.host}`;
+};
+
+export async function getServerSideProps({ req }: { req: any }) {
+  try {
+    const response = await fetch(`${getBaseUrl(req)}/api/recipes`);
+    const data = await response.json();
+
+    return {
+      props: {
+        recipes: Array.isArray(data) ? data.map(normalizeRecipe) : [],
+      },
+    };
+  } catch {
+    return {
+      props: { recipes: [] },
+    };
+  }
+}
+
+const ReceptPage = ({ recipes }: Props) => {
   const router = useRouter();
-  const [remoteRecipes, setRemoteRecipes] = useState<Recipe[]>(() =>
-    readCachedRecipes()
-  );
-  const [user, setUser] = useState<CurrentUser | null>(null);
+  const [remoteRecipes, setRemoteRecipes] = useState<Recipe[]>(recipes);
+  /** Tom vid SSR/hydration — annars mismatch mot localStorage. */
+  const [localRecipes, setLocalRecipesState] = useState<Recipe[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Alla");
   const [draft, setDraft] = useState<RecipeDraft>(emptyDraft);
   const [formStatus, setFormStatus] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [favoriteStatus, setFavoriteStatus] = useState("");
-  const [libraryStatus, setLibraryStatus] = useState("");
-  const [isLibraryLoading, setIsLibraryLoading] = useState(true);
+  const isLoggedIn = useLoggedIn();
+  const [heartLoadingId, setHeartLoadingId] = useState<string | null>(null);
+
+  const prefetchRecipeDetail = (recipeId: string) => {
+    router.prefetch(`/recept/${recipeId}`);
+    void fetch(`/api/recipes/${recipeId}?fields=basic`, {
+      credentials: "include",
+    });
+  };
 
   useEffect(() => {
-    const cachedRecipes = readCachedRecipes();
-
-    getCurrentUser()
-      .then((currentUser) => {
-        setUser(currentUser);
-        setFavoriteIds(currentUser?.favoriteIds || []);
-      })
-      .catch(() => {
-        setUser(null);
-        setFavoriteIds([]);
-      });
-
-    listRecipes()
-      .then((recipes) => {
-        setRemoteRecipes(recipes);
-        writeCachedRecipes(recipes);
-        setLibraryStatus("");
-      })
-      .catch((error) => {
-        if (cachedRecipes.length === 0) {
-          setRemoteRecipes([]);
-          setLibraryStatus(
-            error instanceof Error ? error.message : "Biblioteket kunde inte laddas."
-          );
-        } else {
-          setLibraryStatus("");
-        }
-      })
-      .finally(() => {
-        setIsLibraryLoading(false);
-      });
+    setLocalRecipesState(getLocalRecipes());
   }, []);
 
-  const allRecipes = remoteRecipes;
+  useEffect(() => {
+    if (!isLoggedIn) {
+      return;
+    }
+    (async () => {
+      try {
+        const response = await fetch("/api/favorites", { credentials: "include" });
+        if (!response.ok) {
+          return;
+        }
+        const data = await response.json();
+        setFavoriteIds(Array.isArray(data.recipeIds) ? data.recipeIds : []);
+      } catch {
+        // Ignore; favorites can be fetched lazily after interaction.
+      }
+    })();
+  }, [isLoggedIn]);
+
+  const allRecipes = useMemo(
+    () => mergeRecipes(localRecipes, remoteRecipes),
+    [localRecipes, remoteRecipes]
+  );
 
   const categories = useMemo(() => {
     const recipeCategories = allRecipes
@@ -169,11 +154,6 @@ const ReceptPage = () => {
     setFormStatus("");
     setIsSaving(true);
 
-    if (!user) {
-      router.push(loginRedirect("/recept#nytt-recept"));
-      return;
-    }
-
     const recipePayload = normalizeRecipe({
       ...draft,
       ingredients: draft.ingredients,
@@ -189,58 +169,105 @@ const ReceptPage = () => {
     }
 
     try {
-      const savedRecipe = await createRecipe(recipePayload);
-      setSearchTerm("");
-      setSelectedCategory("Alla");
-      setLibraryStatus("");
-      setRemoteRecipes((current) => {
-        const nextRecipes = [
-          savedRecipe,
-          ...current.filter((recipe) => recipe._id !== savedRecipe._id),
-        ];
-        writeCachedRecipes(nextRecipes);
-        return nextRecipes;
-      });
-      void listRecipes()
-        .then((recipes) => {
-          setRemoteRecipes(recipes);
-          writeCachedRecipes(recipes);
-          setLibraryStatus("");
-        })
-        .catch((error) => {
-          setLibraryStatus(
-            error instanceof Error ? error.message : "Biblioteket kunde inte uppdateras."
-          );
+      if (!isLoggedIn) {
+        setFormStatus("Logga in för att skapa recept i ditt konto.");
+        setIsSaving(false);
+        return;
+      }
+
+      if (!draft.imageDataUrl) {
+        const response = await fetch("/api/recipes", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(recipePayload),
         });
-      setFormStatus("Receptet är publicerat i biblioteket.");
+
+        if (response.ok) {
+          const savedRecipe = normalizeRecipe(await response.json());
+          setRemoteRecipes((current) => [savedRecipe, ...current]);
+          setFormStatus("Receptet sparades.");
+          resetDraft();
+          return;
+        }
+      }
+
+      const localRecipe = saveLocalRecipe(draft);
+      setLocalRecipesState((current) => [localRecipe, ...current]);
+      setFormStatus("Receptet sparades på den här enheten.");
       resetDraft();
-    } catch (error) {
-      setFormStatus(
-        error instanceof Error ? error.message : "Receptet kunde inte sparas."
-      );
+    } catch {
+      const localRecipe = saveLocalRecipe(draft);
+      setLocalRecipesState((current) => [localRecipe, ...current]);
+      setFormStatus("Receptet sparades på den här enheten.");
+      resetDraft();
     } finally {
       setIsSaving(false);
     }
   };
 
-  const onToggleFavorite = async (recipeId: string) => {
-    setFavoriteStatus("");
-
-    if (!user) {
-      router.push(loginRedirect("/recept"));
+  const onToggleFavorite = (recipeId: string) => {
+    if (!isLoggedIn) {
+      setFormStatus("Logga in för att spara favoriter.");
       return;
     }
+    const isAlreadyFavorite = favoriteIds.includes(recipeId);
+    setHeartLoadingId(recipeId);
 
-    const isSaved = favoriteIds.includes(recipeId);
-    try {
-      setFavoriteIds(await setRecipeFavorite(recipeId, isSaved));
-    } catch (error) {
-      setFavoriteStatus(
-        error instanceof Error
-          ? error.message
-          : "Kunde inte uppdatera sparade recept."
-      );
+    (async () => {
+      try {
+        if (isAlreadyFavorite) {
+          const response = await fetch(`/api/favorites/${recipeId}`, {
+            method: "DELETE",
+            credentials: "include",
+          });
+          if (!response.ok) {
+            const body = await response.json().catch(() => null);
+            setFormStatus(
+              typeof body?.message === "string"
+                ? body.message
+                : "Kunde inte ta bort favoriten."
+            );
+            return;
+          }
+          setFavoriteIds((current) => current.filter((id) => id !== recipeId));
+        } else {
+          const response = await fetch("/api/favorites", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ recipeId }),
+          });
+          if (!response.ok) {
+            const body = await response.json().catch(() => null);
+            setFormStatus(
+              typeof body?.message === "string"
+                ? body.message
+                : "Kunde inte spara favoriten. Är du inloggad?"
+            );
+            return;
+          }
+          setFavoriteIds((current) =>
+            current.includes(recipeId) ? current : [recipeId, ...current]
+          );
+        }
+      } catch {
+        setFormStatus("Kunde inte uppdatera favorit just nu.");
+      } finally {
+        setHeartLoadingId(null);
+      }
+    })();
+  };
+
+  const onCreateMyVersion = (recipe: Recipe) => {
+    if (!isLoggedIn) {
+      setFormStatus("Logga in för att skapa en egen version.");
+      return;
     }
+    const localCopy = saveLocalRecipeCopy(recipe, {
+      ownerUserId: getStoredUser()?.id,
+    });
+    window.location.href = `/recept/${localCopy._id}`;
   };
 
   return (
@@ -251,14 +278,14 @@ const ReceptPage = () => {
         <section className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
           <div>
             <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-emerald-700">
-              Allmänt bibliotek
+              Din receptsamling
             </p>
             <h1 className="max-w-3xl text-4xl font-bold tracking-tight text-stone-950 sm:text-5xl">
-              Sök bland allas recept och spara dina egna favoriter.
+              Spara, hitta och laga recepten du faktiskt vill komma tillbaka till.
             </h1>
             <p className="mt-4 max-w-2xl text-lg leading-8 text-stone-700">
-              Alla kan läsa biblioteket. Logga in för att lägga till egna recept
-              och spara andras recept till din personliga lista.
+              Bygg upp en egen receptbok direkt i webben, med snabb sökning,
+              tydliga steg och sparade favoriter på mobilen.
             </p>
           </div>
           <div className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm">
@@ -281,31 +308,22 @@ const ReceptPage = () => {
               className="h-12 w-full rounded-full border border-stone-300 bg-white px-5 text-stone-950 outline-none transition focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
             />
           </label>
-          <Link
-            href="#nytt-recept"
-            className="inline-flex h-12 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800"
-          >
-            Lägg till recept
-          </Link>
+          {isLoggedIn ? (
+            <Link
+              href="#nytt-recept"
+              className="inline-flex h-12 items-center justify-center rounded-full bg-emerald-700 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800"
+            >
+              Lägg till recept
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className="inline-flex h-12 items-center justify-center rounded-full bg-stone-900 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-stone-700"
+            >
+              Logga in för att lägga till
+            </Link>
+          )}
         </section>
-
-        {favoriteStatus && (
-          <p className="mt-4 rounded-md bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
-            {favoriteStatus}
-          </p>
-        )}
-
-        {libraryStatus && (
-          <p className="mt-4 rounded-md bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-            {libraryStatus}
-          </p>
-        )}
-
-        {isLibraryLoading && remoteRecipes.length > 0 && (
-          <p className="mt-4 text-sm font-medium text-stone-500">
-            Uppdaterar biblioteket...
-          </p>
-        )}
 
         <section className="mt-5 flex gap-2 overflow-x-auto pb-2">
           {categories.map((category) => (
@@ -324,83 +342,77 @@ const ReceptPage = () => {
           ))}
         </section>
 
-        {isLibraryLoading && remoteRecipes.length === 0 ? (
-          <section className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <article
-                key={`library-skeleton-${index}`}
-                className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm"
-              >
-                <div className="h-56 w-full animate-pulse bg-stone-200" />
-                <div className="space-y-3 p-5">
-                  <div className="h-3 w-24 animate-pulse rounded-full bg-stone-200" />
-                  <div className="h-7 w-3/4 animate-pulse rounded-full bg-stone-200" />
-                  <div className="h-4 w-full animate-pulse rounded-full bg-stone-100" />
-                  <div className="h-4 w-5/6 animate-pulse rounded-full bg-stone-100" />
-                  <div className="h-4 w-2/5 animate-pulse rounded-full bg-stone-100" />
-                </div>
-              </article>
-            ))}
-          </section>
-        ) : (
-          <section className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredRecipes.map((recipe) => (
-              <article
-                key={recipe._id}
-                className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-              >
-                <Link
-                  href={`/recept-detalj?id=${encodeURIComponent(recipe._id)}`}
-                  className="block"
-                >
-                  <img
-                    src={recipeImage(recipe)}
-                    alt={recipe.name}
-                    className="h-56 w-full object-cover"
-                    onError={(event) => {
-                      event.currentTarget.src = "/images/heroImageLandingPage.jpg";
-                    }}
-                  />
-                  <div className="p-5">
-                    <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-emerald-700">
-                      <span>{recipe.category || "Okategoriserat"}</span>
-                      {recipe.ownerName && <span>av {recipe.ownerName}</span>}
-                    </div>
-                    <h2 className="text-xl font-bold text-stone-950">{recipe.name}</h2>
-                    {recipe.description && (
-                      <p className="mt-2 line-clamp-3 text-sm leading-6 text-stone-600">
-                        {recipe.description}
-                      </p>
-                    )}
-                    <p className="mt-4 text-sm text-stone-500">
-                      {recipe.ingredients.length} ingredienser
-                      {recipe.portions ? ` · ${recipe.portions} portioner` : ""}
-                    </p>
+        <section className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredRecipes.map((recipe) => (
+            <article
+              key={recipe._id}
+              className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              onMouseEnter={() => prefetchRecipeDetail(recipe._id)}
+              onFocusCapture={() => prefetchRecipeDetail(recipe._id)}
+            >
+              <Link href={`/recept/${recipe._id}`} className="block">
+                <img
+                  src={recipeImage(recipe)}
+                  alt={recipe.name}
+                  className="h-56 w-full object-cover"
+                  onError={(event) => {
+                    event.currentTarget.src = "/images/heroImageLandingPage.jpg";
+                  }}
+                />
+                <div className="p-5">
+                  <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                    <span>{recipe.category || "Okategoriserat"}</span>
+                    {recipe.localOnly && <span>Lokalt</span>}
                   </div>
-                </Link>
-                <div className="border-t border-stone-100 px-5 py-3">
+                  <h2 className="text-xl font-bold text-stone-950">{recipe.name}</h2>
+                  {recipe.description && (
+                    <p className="mt-2 line-clamp-3 text-sm leading-6 text-stone-600">
+                      {recipe.description}
+                    </p>
+                  )}
+                  <p className="mt-4 text-sm text-stone-500">
+                    {recipe.ingredients.length} ingredienser
+                    {recipe.portions ? ` · ${recipe.portions} portioner` : ""}
+                  </p>
+                </div>
+              </Link>
+              <div className="flex items-center justify-between border-t border-stone-100 px-5 py-3">
+                <button
+                  type="button"
+                  onClick={() => onToggleFavorite(recipe._id)}
+                  disabled={heartLoadingId === recipe._id}
+                  aria-label={
+                    favoriteIds.includes(recipe._id)
+                      ? "Ta bort från sparade"
+                      : "Spara recept"
+                  }
+                  className={`text-2xl leading-none transition ${
+                    favoriteIds.includes(recipe._id)
+                      ? "text-rose-600"
+                      : "text-stone-400 hover:text-rose-500"
+                  } disabled:opacity-50`}
+                >
+                  {favoriteIds.includes(recipe._id) ? "♥" : "♡"}
+                </button>
+                {favoriteIds.includes(recipe._id) && (
                   <button
                     type="button"
-                    onClick={() => onToggleFavorite(recipe._id)}
-                    className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-emerald-700 hover:text-emerald-800"
+                    onClick={() => onCreateMyVersion(recipe)}
+                    className="rounded-full border border-stone-300 px-4 py-2 text-xs font-semibold text-stone-700 transition hover:border-emerald-700 hover:text-emerald-800"
                   >
-                    {user
-                      ? favoriteIds.includes(recipe._id)
-                        ? "Sparad"
-                        : "Spara"
-                      : "Logga in för att spara"}
+                    Egen version
                   </button>
-                </div>
-              </article>
-            ))}
-          </section>
-        )}
+                )}
+              </div>
+            </article>
+          ))}
+        </section>
 
-        {!isLibraryLoading && filteredRecipes.length === 0 && (
+        {filteredRecipes.length === 0 && (
           <section className="mt-8 rounded-lg border border-dashed border-stone-300 bg-white p-8 text-center">
             <h2 className="text-xl font-bold text-stone-950">Inga recept hittades</h2>
             <p className="mt-2 text-stone-600">
-              Testa en annan sökning eller logga in och lägg till ett nytt recept.
+              Testa en annan sökning eller lägg till ett nytt recept.
             </p>
           </section>
         )}
@@ -418,31 +430,15 @@ const ReceptPage = () => {
             </h2>
           </div>
 
-          {!user ? (
-            <div className="rounded-lg border border-dashed border-stone-300 bg-stone-50 p-6">
-              <h3 className="text-xl font-bold text-stone-950">
-                Logga in för att lägga till recept
-              </h3>
-              <p className="mt-2 text-stone-600">
-                Biblioteket är öppet för alla att läsa, men nya recept kopplas
-                till ditt konto.
-              </p>
-              <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                <Link
-                  href={loginRedirect("/recept#nytt-recept")}
-                  className="inline-flex h-12 items-center justify-center rounded-full bg-emerald-700 px-6 text-sm font-semibold text-white"
-                >
-                  Logga in
-                </Link>
-                <Link
-                  href={`/register?next=${encodeURIComponent("/recept#nytt-recept")}`}
-                  className="inline-flex h-12 items-center justify-center rounded-full border border-stone-300 px-6 text-sm font-semibold text-stone-800"
-                >
-                  Skapa konto
-                </Link>
-              </div>
+          {!isLoggedIn && (
+            <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+              Du behöver vara inloggad för att skapa recept i Supabase.
+              <Link href="/login" className="ml-2 font-semibold underline">
+                Logga in
+              </Link>
             </div>
-          ) : (
+          )}
+
           <form onSubmit={onSubmit} className="grid gap-5">
             <div className="grid gap-5 md:grid-cols-2">
               <label className="grid gap-2 text-sm font-medium text-stone-700">
@@ -453,6 +449,7 @@ const ReceptPage = () => {
                   onChange={onDraftChange}
                   className="rounded-md border border-stone-300 bg-white px-4 py-3 text-stone-950 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
                   required
+                  disabled={!isLoggedIn}
                 />
               </label>
               <label className="grid gap-2 text-sm font-medium text-stone-700">
@@ -463,6 +460,7 @@ const ReceptPage = () => {
                   onChange={onDraftChange}
                   className="rounded-md border border-stone-300 bg-white px-4 py-3 text-stone-950 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
                   placeholder="Pasta, middag, dessert"
+                  disabled={!isLoggedIn}
                 />
               </label>
             </div>
@@ -477,6 +475,7 @@ const ReceptPage = () => {
                   value={draft.portions}
                   onChange={onDraftChange}
                   className="rounded-md border border-stone-300 bg-white px-4 py-3 text-stone-950 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
+                  disabled={!isLoggedIn}
                 />
               </label>
               <label className="grid gap-2 text-sm font-medium text-stone-700">
@@ -486,6 +485,7 @@ const ReceptPage = () => {
                   value={draft.description}
                   onChange={onDraftChange}
                   className="rounded-md border border-stone-300 bg-white px-4 py-3 text-stone-950 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
+                  disabled={!isLoggedIn}
                 />
               </label>
             </div>
@@ -501,6 +501,7 @@ const ReceptPage = () => {
                   className="rounded-md border border-stone-300 bg-white px-4 py-3 text-stone-950 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
                   placeholder={"400 g pasta\n2 dl grädde\n1 citron"}
                   required
+                  disabled={!isLoggedIn}
                 />
               </label>
               <label className="grid gap-2 text-sm font-medium text-stone-700">
@@ -512,13 +513,14 @@ const ReceptPage = () => {
                   rows={7}
                   className="rounded-md border border-stone-300 bg-white px-4 py-3 text-stone-950 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
                   placeholder={"Koka pastan.\nRör ihop såsen.\nServera direkt."}
+                  disabled={!isLoggedIn}
                 />
               </label>
             </div>
 
             <div className="grid gap-5 md:grid-cols-2">
               <label className="grid gap-2 text-sm font-medium text-stone-700">
-                Bildlänk
+                Bildlank
                 <input
                   name="imageUrl"
                   type="url"
@@ -526,15 +528,17 @@ const ReceptPage = () => {
                   onChange={onDraftChange}
                   className="rounded-md border border-stone-300 bg-white px-4 py-3 text-stone-950 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-100"
                   placeholder="https://..."
+                  disabled={!isLoggedIn}
                 />
               </label>
               <label className="grid gap-2 text-sm font-medium text-stone-700">
-                Bild från mobilen
+                Bild fran mobilen
                 <input
                   type="file"
                   accept="image/*"
                   onChange={onImageChange}
                   className="rounded-md border border-stone-300 bg-white px-4 py-2.5 text-stone-950 file:mr-4 file:rounded-full file:border-0 file:bg-emerald-700 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white"
+                  disabled={!isLoggedIn}
                 />
               </label>
             </div>
@@ -550,7 +554,7 @@ const ReceptPage = () => {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <button
                 type="submit"
-                disabled={isSaving}
+                disabled={isSaving || !isLoggedIn}
                 className="inline-flex h-12 items-center justify-center rounded-full bg-emerald-700 px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSaving ? "Sparar..." : "Spara recept"}
@@ -560,7 +564,6 @@ const ReceptPage = () => {
               )}
             </div>
           </form>
-          )}
         </section>
       </main>
 

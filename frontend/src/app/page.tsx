@@ -6,29 +6,82 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import {
   Recipe,
+  getLocalRecipes,
+  mergeRecipes,
+  normalizeRecipe,
   recipeImage,
 } from "@/lib/recipes";
-import { listRecipes } from "@/lib/supabaseRecipes";
+
+const REMOTE_CACHE_KEY = "receptbok.remoteRecipesCache.v1";
+
+const getCachedRemoteRecipes = (): Recipe[] => {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const raw = window.sessionStorage.getItem(REMOTE_CACHE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.map(normalizeRecipe) : [];
+  } catch {
+    return [];
+  }
+};
 
 const Home = () => {
   const [remoteRecipes, setRemoteRecipes] = useState<Recipe[]>([]);
+  const [localRecipes, setLocalRecipes] = useState<Recipe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    setLocalRecipes(getLocalRecipes());
+  }, []);
+
+  useEffect(() => {
+    const cachedRecipes = getCachedRemoteRecipes();
+    let cacheTimer: number | null = null;
+    if (cachedRecipes.length > 0) {
+      cacheTimer = window.setTimeout(() => {
+        setRemoteRecipes(cachedRecipes);
+        setIsLoading(false);
+      }, 0);
+    }
+
     const fetchRecipes = async () => {
       try {
-        setRemoteRecipes(await listRecipes());
+        const response = await fetch("/api/recipes", { cache: "no-store" });
+        const data = await response.json();
+        const nextRecipes = Array.isArray(data) ? data.map(normalizeRecipe) : [];
+        setRemoteRecipes(nextRecipes);
+
+        try {
+          window.sessionStorage.setItem(
+            REMOTE_CACHE_KEY,
+            JSON.stringify(nextRecipes)
+          );
+        } catch {
+          // Ignore cache write failures (private mode/storage quotas).
+        }
       } catch {
-        setRemoteRecipes([]);
+        // Keep cached data if fetch fails.
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchRecipes();
+
+    return () => {
+      if (cacheTimer) {
+        window.clearTimeout(cacheTimer);
+      }
+    };
   }, []);
 
-  const recipes = useMemo(() => remoteRecipes, [remoteRecipes]);
+  const recipes = useMemo(
+    () => mergeRecipes(localRecipes, remoteRecipes),
+    [localRecipes, remoteRecipes]
+  );
 
   const featuredRecipes = recipes.slice(0, 3);
   const categories = Array.from(
@@ -52,11 +105,11 @@ const Home = () => {
               Receptbok
             </p>
             <h1 className="max-w-3xl text-5xl font-bold tracking-tight sm:text-6xl">
-              Ett gemensamt receptbibliotek med dina egna sparade favoriter.
+              Din egen receptapp för vardag, helg och allt gott däremellan.
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-stone-100">
-              Alla kan söka bland recepten. Logga in för att lägga till egna
-              recept och spara favoriter till ditt konto.
+              Lägg till recept utan adminläge, spara favoriter och ha snabb
+              åtkomst från mobilen när sidan är publicerad.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
@@ -118,7 +171,7 @@ const Home = () => {
               {featuredRecipes.map((recipe) => (
                 <Link
                   key={recipe._id}
-                  href={`/recept-detalj?id=${encodeURIComponent(recipe._id)}`}
+                  href={`/recept/${recipe._id}`}
                   className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
                 >
                   <img

@@ -1,15 +1,18 @@
 {
   "name": "receptbok",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build --webpack",
-    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
-    "start": "next start"
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "start": "next start",
+    "migrate:recipes": "node --env-file=.env.local ./scripts/migrate-recipes-to-supabase.mjs",
+    "verify:supabase": "node --env-file=.env.local ./scripts/verify-supabase.mjs"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.104.1",
     "next": "^16.2.4",
     "react": "^19.2.5",

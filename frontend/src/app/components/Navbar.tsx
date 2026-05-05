@@ -1,29 +1,37 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import { CurrentUser, getCurrentUser } from "@/lib/authClient";
-import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
+import { AUTH_CHANGE_EVENT, getStoredUser, notifyAuthChange } from "@/lib/auth/local-user";
 
 const Navbar = () => {
-  const [user, setUser] = useState<CurrentUser | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  React.useEffect(() => {
+    const sync = () => setIsLoggedIn(Boolean(getStoredUser()));
+    const timer = window.setTimeout(sync, 0);
+    window.addEventListener(AUTH_CHANGE_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener(AUTH_CHANGE_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
+
+  const onLogout = () => {
+    window.localStorage.removeItem("receptbok.user");
+    setIsLoggedIn(false);
+    notifyAuthChange();
+    window.location.href = "/";
+  };
 
   const links = [
     { href: "/", label: "Hem" },
-    { href: "/recept", label: "Bibliotek" },
+    { href: "/recept", label: "Recept" },
     { href: "/sparade", label: "Sparade" },
     { href: "/about", label: "Om" },
   ];
-
-  useEffect(() => {
-    getCurrentUser().then(setUser).catch(() => setUser(null));
-  }, []);
-
-  const logout = async () => {
-    await getSupabaseBrowserClient().auth.signOut();
-    setUser(null);
-    window.location.href = "/recept";
-  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-stone-200 bg-white/95 backdrop-blur">
@@ -48,18 +56,18 @@ const Navbar = () => {
           >
             Nytt recept
           </Link>
-          {user ? (
+          {isLoggedIn ? (
             <button
               type="button"
-              onClick={logout}
-              className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-stone-500"
+              onClick={onLogout}
+              className="rounded-full border border-stone-300 px-3 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-100 hover:text-stone-950"
             >
               Logga ut
             </button>
           ) : (
             <Link
               href="/login"
-              className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-stone-500"
+              className="rounded-full border border-stone-300 px-3 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-100 hover:text-stone-950"
             >
               Logga in
             </Link>
