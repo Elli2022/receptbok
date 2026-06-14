@@ -58,8 +58,9 @@ test.describe("Receptbok smoke", () => {
 
   test("recipe detail loads from library", async ({ page }) => {
     await page.goto("/recept", { waitUntil: "load" });
-    const firstRecipe = page.locator("article a").first();
-    await expect(firstRecipe).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByPlaceholder(/sök recept/i)).toBeVisible({ timeout: 15_000 });
+    const firstRecipe = page.locator("article.recipe-card a").first();
+    await expect(firstRecipe).toBeVisible({ timeout: 20_000 });
     await firstRecipe.click();
     await expect(page).toHaveURL(/\/recept\/[^/]+/);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible({ timeout: 15_000 });
