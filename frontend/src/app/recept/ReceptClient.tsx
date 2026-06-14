@@ -93,16 +93,6 @@ const ReceptClient = ({
   const [heartLoadingId, setHeartLoadingId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!initialRecipes?.length) {
-      return;
-    }
-    const next = prepareRecipeList(initialRecipes);
-    stashRecipeList(next);
-    setRemoteRecipes(next);
-    setIsLoadingRecipes(false);
-  }, [initialRecipes]);
-
-  useEffect(() => {
     let cancelled = false;
     void fetchRecipeList().then((recipes) => {
       if (cancelled) return;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import Footer from "@/app/components/Footer";
@@ -87,6 +87,10 @@ const RecipeDetailClient = ({ initialRecipe = null }: RecipeDetailClientProps) =
     ingredients: "",
     instructions: "",
   });
+
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [id]);
 
   useEffect(() => {
     if (!id) {
