@@ -1,13 +1,14 @@
+"use client";
+
 import React, { useState } from "react";
 import Link from "next/link";
-import Navbar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
 import AuthShell from "@/app/components/AuthShell";
 import { getPasswordResetRedirectUrl } from "@/lib/auth/site-url";
 import { getSupabaseBrowserClient, hasSupabaseConfig } from "@/lib/supabaseClient";
 import { authButtonClassName, authInputClassName } from "@/lib/auth/input-styles";
 
-const ForgotPassword = () => {
+export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -51,8 +52,7 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      <Navbar />
+    <>
       <AuthShell
         eyebrow="Återställning"
         title="Glömt lösenord?"
@@ -94,8 +94,6 @@ const ForgotPassword = () => {
         </p>
       </AuthShell>
       <Footer />
-    </div>
+    </>
   );
-};
-
-export default ForgotPassword;
+}

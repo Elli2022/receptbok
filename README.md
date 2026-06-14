@@ -12,18 +12,19 @@ Full-stack recipe collection app: browse and search recipes, save favorites, and
 
 ## Status
 
-- **CI:** lint + build (Node 22) — green after React 19 ESLint fixes and `useLocalRecipes` hydration hook
-- **Deploy:** [recipe-book-platform.netlify.app](https://recipe-book-platform.netlify.app) via Netlify
-- **SEO:** Open Graph metadata, `sitemap.xml`, `robots.txt`, custom 404
+- **CI:** lint, unit tests, build, E2E smoke, optional Supabase verify, auto-deploy to Netlify on `main`
+- **Deploy:** [recipe-book-platform.netlify.app](https://recipe-book-platform.netlify.app) via Netlify (post-deploy health check on `/recept`)
+- **SEO:** Open Graph metadata per recipe, `sitemap.xml`, `robots.txt`, App Router `not-found`
 
 ## Highlights
 
-- **Recipe library** with search, categories, and detail pages
-- **Authentication** via Supabase (register, login, email callback)
-- **Favorites** synced for logged-in users
-- **Hybrid routing** — App Router home + Pages Router for library and API routes
-- **PWA support** — manifest, service worker, mobile-friendly layout
-- **CI** — GitHub Actions lint and build on every push
+- **Recipe library** with search, meal/diet filters, and detail pages
+- **DB metadata** — `meal_type`, `tags`, `prep_time_minutes` on recipes (with client-side inference fallback)
+- **Authentication** via Supabase (register, login, email callback, password reset)
+- **Favorites** synced for logged-in users (`/api/favorites/recipes` lightweight endpoint)
+- **App Router** for all UI pages; Pages Router kept for API routes
+- **PWA support** — manifest, versioned service worker (network-first HTML), mobile-friendly layout
+- **Observability** — optional Sentry when `NEXT_PUBLIC_SENTRY_DSN` is set
 
 ## Screenshots
 
@@ -43,16 +44,17 @@ Full-stack recipe collection app: browse and search recipes, save favorites, and
 | Backend | Next.js Pages API routes |
 | Database / Auth | Supabase (PostgreSQL + Auth) |
 | Deploy | Netlify (`@netlify/plugin-nextjs`) |
-| Legacy | Express/Mongo backend in `backend/` (deprecated, not used in production) |
+| Legacy | Express/Mongo in `archive/backend-legacy/` (archived, not used) |
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-  Browser --> Next[Next.js app]
+  Browser --> Next[Next.js App Router]
   Next --> API[Pages API routes]
   API --> Supabase[(Supabase)]
   Browser --> PWA[Service worker / manifest]
+  Next --> Middleware[Supabase session refresh]
 ```
 
 ## Local development
@@ -74,18 +76,22 @@ Open http://localhost:3000
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Public anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes (API routes) | Server-side admin key — never expose to client |
+| `NEXT_PUBLIC_SENTRY_DSN` | No | Enables Sentry error reporting when set |
 
 See `supabase/README.md` for schema migrations and auth redirect setup.
 
 ### Scripts
 
 ```bash
-npm run dev      # local development
-npm run build    # production build
-npm run lint     # ESLint
-npm run screenshots  # capture README screenshots (Playwright)
-npm run test:e2e     # smoke tests (starts production server)
-npm run storybook    # component library (Vite)
+npm run dev                      # local development
+npm run build                    # production build (injects SW cache version)
+npm run lint                     # ESLint
+npm run test:unit                # Vitest unit tests
+npm run test:e2e                 # Playwright smoke tests
+npm run verify:supabase          # optional DB connectivity check
+npm run backfill:recipe-metadata # backfill meal_type, tags, images in Supabase
+npm run screenshots              # capture README screenshots (Playwright)
+npm run storybook                # component library (Vite)
 ```
 
 Deploy env checklist: see `docs/NETLIFY_ENV.md` (requires `SUPABASE_SERVICE_ROLE_KEY` on Netlify).
@@ -93,20 +99,27 @@ Deploy env checklist: see `docs/NETLIFY_ENV.md` (requires `SUPABASE_SERVICE_ROLE
 ## Project structure
 
 ```text
-frontend/          # Next.js application (active)
-  src/app/         # App Router (home, shared components)
-  src/pages/       # Pages Router (library, auth, API)
-  src/lib/         # Supabase client, recipe helpers
-supabase/          # SQL migrations and docs
-backend/           # Deprecated Express/Mongo prototype
+frontend/                  # Next.js application (active)
+  src/app/                 # App Router (all UI pages)
+  src/pages/api/           # Pages Router API routes
+  src/lib/                 # Supabase client, recipe helpers, caches
+supabase/                  # SQL migrations and docs
+archive/backend-legacy/    # Deprecated Express/Mongo prototype
 ```
+
+## Known limitations
+
+- **Hybrid API routing:** REST endpoints remain under `pages/api/` while UI is App Router.
+- **Local user cache:** `localStorage` user mirror kept for navbar/favorites UX; session cookies refreshed via middleware.
+- **Filter metadata:** Inference still runs when DB columns are empty (run `backfill:recipe-metadata` after migration).
+- **Sentry:** Disabled unless `NEXT_PUBLIC_SENTRY_DSN` is configured.
 
 ## For reviewers / interviews
 
-1. **Full-stack scope:** Auth, CRUD recipes, favorites, and deployable production config — not just a static recipe list.
-2. **Pragmatic migration:** App Router for marketing home while library/API remain on Pages Router during incremental migration.
+1. **Full-stack scope:** Auth, CRUD recipes, favorites, filter metadata, deployable production config.
+2. **Incremental hardening:** App Router migration, DB-backed filters, lightweight favorites API, CI health checks.
 3. **Offline-friendly touches:** Local recipe cache + PWA for mobile use cases.
-4. **Tradeoff:** Deprecated Mongo backend kept for history; production path is Supabase-only.
+4. **Tradeoff:** Legacy Mongo backend archived; production path is Supabase-only.
 
 ## License
 

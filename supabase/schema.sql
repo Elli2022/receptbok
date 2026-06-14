@@ -15,6 +15,9 @@ create table if not exists public.recipes (
   description text not null default '',
   portions text not null default '',
   category text not null default 'Okategoriserat',
+  meal_type text,
+  tags text[] not null default '{}',
+  prep_time_minutes integer,
   ingredients text[] not null default '{}',
   instructions text[] not null default '{}',
   image text not null default '',
@@ -114,6 +117,7 @@ for each row
 execute function public.set_recipe_owner();
 
 drop function if exists public.create_recipe(text, text, text, text, text[], text[], text, text);
+drop function if exists public.create_recipe(text, text, text, text, text[], text[], text, text, text, text[], integer);
 create or replace function public.create_recipe(
   recipe_name text,
   recipe_description text,
@@ -122,7 +126,10 @@ create or replace function public.create_recipe(
   recipe_ingredients text[],
   recipe_instructions text[],
   recipe_image text,
-  recipe_source_image text
+  recipe_source_image text,
+  recipe_meal_type text default null,
+  recipe_tags text[] default '{}',
+  recipe_prep_time_minutes integer default null
 )
 returns table (
   id uuid,
@@ -132,6 +139,9 @@ returns table (
   description text,
   portions text,
   category text,
+  meal_type text,
+  tags text[],
+  prep_time_minutes integer,
   ingredients text[],
   instructions text[],
   image text,
@@ -165,6 +175,9 @@ begin
     description,
     portions,
     category,
+    meal_type,
+    tags,
+    prep_time_minutes,
     ingredients,
     instructions,
     image,
@@ -177,6 +190,9 @@ begin
     coalesce(recipe_description, ''),
     coalesce(recipe_portions, ''),
     coalesce(nullif(recipe_category, ''), 'Okategoriserat'),
+    nullif(trim(coalesce(recipe_meal_type, '')), ''),
+    coalesce(recipe_tags, '{}'::text[]),
+    recipe_prep_time_minutes,
     coalesce(recipe_ingredients, '{}'::text[]),
     coalesce(recipe_instructions, '{}'::text[]),
     coalesce(recipe_image, ''),
@@ -190,6 +206,9 @@ begin
     recipes.description,
     recipes.portions,
     recipes.category,
+    recipes.meal_type,
+    recipes.tags,
+    recipes.prep_time_minutes,
     recipes.ingredients,
     recipes.instructions,
     recipes.image,
@@ -199,8 +218,8 @@ begin
 end;
 $$;
 
-revoke all on function public.create_recipe(text, text, text, text, text[], text[], text, text) from public;
-grant execute on function public.create_recipe(text, text, text, text, text[], text[], text, text) to authenticated;
+revoke all on function public.create_recipe(text, text, text, text, text[], text[], text, text, text, text[], integer) from public;
+grant execute on function public.create_recipe(text, text, text, text, text[], text[], text, text, text, text[], integer) to authenticated;
 
 drop function if exists public.save_favorite_recipe(uuid);
 create or replace function public.save_favorite_recipe(target_recipe_id uuid)
@@ -254,6 +273,9 @@ returns table (
   description text,
   portions text,
   category text,
+  meal_type text,
+  tags text[],
+  prep_time_minutes integer,
   ingredients text[],
   instructions text[],
   image text,
@@ -272,6 +294,9 @@ as $$
     recipes.description,
     recipes.portions,
     recipes.category,
+    recipes.meal_type,
+    recipes.tags,
+    recipes.prep_time_minutes,
     recipes.ingredients,
     recipes.instructions,
     recipes.image,
@@ -294,6 +319,9 @@ returns table (
   description text,
   portions text,
   category text,
+  meal_type text,
+  tags text[],
+  prep_time_minutes integer,
   ingredients text[],
   instructions text[],
   image text,
@@ -312,6 +340,9 @@ as $$
     recipes.description,
     recipes.portions,
     recipes.category,
+    recipes.meal_type,
+    recipes.tags,
+    recipes.prep_time_minutes,
     recipes.ingredients,
     recipes.instructions,
     recipes.image,
@@ -351,6 +382,9 @@ returns table (
   description text,
   portions text,
   category text,
+  meal_type text,
+  tags text[],
+  prep_time_minutes integer,
   ingredients text[],
   instructions text[],
   image text,
@@ -369,6 +403,9 @@ as $$
     recipes.description,
     recipes.portions,
     recipes.category,
+    recipes.meal_type,
+    recipes.tags,
+    recipes.prep_time_minutes,
     recipes.ingredients,
     recipes.instructions,
     recipes.image,

@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import * as Sentry from "@sentry/nextjs";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { createSupabasePagesApiClient } from "@/lib/supabase/pages-api-client";
 import { listRecipesForServer } from "@/lib/supabase/list-recipes-server";
@@ -59,6 +60,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         recipe_instructions: payload.instructions,
         recipe_image: payload.image,
         recipe_source_image: payload.source_image,
+        recipe_meal_type: payload.meal_type || null,
+        recipe_tags: payload.tags,
+        recipe_prep_time_minutes: payload.prep_time_minutes,
       });
 
       if (error) {
@@ -76,6 +80,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader("Allow", ["GET", "POST"]);
     return res.status(405).json({ message: "Metoden är inte tillåten." });
   } catch (e) {
+    Sentry.captureException(e);
     return res.status(500).json({
       message: "Kunde inte hantera receptförfrågan.",
       error: e instanceof Error ? e.message : "Okänt fel",

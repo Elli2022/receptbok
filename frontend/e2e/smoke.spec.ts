@@ -31,6 +31,35 @@ test.describe("Receptbok smoke", () => {
     });
   });
 
+  test("filter combo glutenfritt + dessert shows results or empty state", async ({
+    page,
+  }) => {
+    await page.goto("/recept", { waitUntil: "load" });
+    await page.getByRole("button", { name: "Dessert" }).click();
+    await page.getByRole("button", { name: "Glutenfritt" }).click();
+
+    const emptyState = page.getByRole("heading", { name: /inga recept matchar filtren/i });
+    const recipeCards = page.locator("article");
+    await expect(emptyState.or(recipeCards.first())).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("sparade logged-out shows login prompt", async ({ page }) => {
+    await page.goto("/sparade", { waitUntil: "load" });
+    await expect(
+      page.getByRole("heading", { name: /logga in för sparade recept/i })
+    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("link", { name: "Logga in" })).toBeVisible();
+  });
+
+  test("recipe detail loads from library", async ({ page }) => {
+    await page.goto("/recept", { waitUntil: "load" });
+    const firstRecipe = page.locator("article a").first();
+    await expect(firstRecipe).toBeVisible({ timeout: 15_000 });
+    await firstRecipe.click();
+    await expect(page).toHaveURL(/\/recept\/[^/]+/);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible({ timeout: 15_000 });
+  });
+
   test("unknown route shows 404 page", async ({ page }) => {
     await page.goto("/den-har-rutten-finns-inte");
     await expect(

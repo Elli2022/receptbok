@@ -22,6 +22,8 @@ type RecipeBrowseControlsProps = {
   searchId?: string;
   showSort?: boolean;
   action?: ReactNode;
+  onResetFilters?: () => void;
+  showReset?: boolean;
 };
 
 const mealChipClass = (active: boolean) =>
@@ -50,6 +52,8 @@ const RecipeBrowseControls = ({
   searchId = "recipe-search",
   showSort = false,
   action,
+  onResetFilters,
+  showReset = false,
 }: RecipeBrowseControlsProps) => {
   const hasToolbarExtras = showSort || action;
 
@@ -103,7 +107,7 @@ const RecipeBrowseControls = ({
         ))}
       </section>
 
-      <section className="mt-2 flex flex-wrap gap-2">
+      <section className="mt-2 flex flex-wrap items-center gap-2">
         {DIET_TAGS.map((tag) => (
           <button
             key={tag.id}
@@ -114,6 +118,15 @@ const RecipeBrowseControls = ({
             {tag.label}
           </button>
         ))}
+        {showReset && onResetFilters && (
+          <button
+            type="button"
+            onClick={onResetFilters}
+            className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-600 transition hover:border-rose-300 hover:text-rose-800"
+          >
+            Rensa filter
+          </button>
+        )}
       </section>
     </>
   );

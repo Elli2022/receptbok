@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import * as Sentry from "@sentry/nextjs";
 import { createSupabasePagesApiClient } from "@/lib/supabase/pages-api-client";
 import { hasSupabasePublicConfig } from "@/lib/supabase/env";
 
@@ -50,6 +51,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
   } catch (e) {
+    Sentry.captureException(e);
     return res.status(500).json({
       message: "Kunde inte logga in.",
       error: e instanceof Error ? e.message : "Okänt fel",

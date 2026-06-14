@@ -5,6 +5,9 @@ export type RecipeRow = {
   description: string | null;
   portions: string | null;
   category: string | null;
+  meal_type?: string | null;
+  tags?: string[] | null;
+  prep_time_minutes?: number | null;
   ingredients: string[] | null;
   instructions: string[] | null;
   image: string | null;
@@ -20,6 +23,10 @@ export function recipeRowToClient(row: RecipeRow) {
     description: row.description ?? "",
     portions: row.portions ?? undefined,
     category: row.category ?? "Okategoriserat",
+    mealType: row.meal_type ?? undefined,
+    tags: row.tags ?? [],
+    prepTimeMinutes:
+      row.prep_time_minutes != null ? Number(row.prep_time_minutes) : undefined,
     ingredients: row.ingredients ?? [],
     instructions: row.instructions ?? [],
     image: row.image ?? "",
@@ -57,6 +64,18 @@ export const normalizeRecipePayload = (body: Record<string, unknown>) => ({
   ingredients: toStringArray(body.ingredients),
   instructions: toStringArray(body.instructions),
   category: body.category ? String(body.category).trim() : "Okategoriserat",
+  meal_type: body.meal_type
+    ? String(body.meal_type).trim()
+    : body.mealType
+      ? String(body.mealType).trim()
+      : "",
+  tags: toStringArray(body.tags),
+  prep_time_minutes:
+    body.prep_time_minutes != null
+      ? Number(body.prep_time_minutes)
+      : body.prepTimeMinutes != null
+        ? Number(body.prepTimeMinutes)
+        : null,
   image: body.image ? String(body.image).trim() : "",
   source_image: body.source_image ? String(body.source_image).trim() : "",
 });

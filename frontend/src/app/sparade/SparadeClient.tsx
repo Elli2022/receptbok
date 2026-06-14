@@ -5,82 +5,53 @@ import Link from "next/link";
 import Footer from "@/app/components/Footer";
 import RecipeImage from "@/app/components/RecipeImage";
 import RecipeListSkeleton from "@/app/components/RecipeListSkeleton";
-import {
-  Recipe,
-  mergeRecipes,
-  recipeImage,
-  saveLocalRecipeCopy,
-} from "@/lib/recipes";
+import { Recipe, enrichRecipe, recipeImage, saveLocalRecipeCopy } from "@/lib/recipes";
 import { getStoredUser } from "@/lib/auth/local-user";
 import { useLoggedIn } from "@/lib/auth/use-logged-in";
+import { removeFavoriteId } from "@/lib/favorites-cache";
 import {
-  fetchFavoriteIds,
-  peekFavoriteIds,
-  removeFavoriteId,
-} from "@/lib/favorites-cache";
+  fetchFavoriteRecipes,
+  peekFavoriteRecipes,
+  removeFavoriteRecipe,
+} from "@/lib/favorites-recipes-cache";
 import { useLocalRecipes } from "@/lib/use-local-recipes";
-import { fetchRecipeList, peekRecipeList } from "@/lib/recipe-list-cache";
 
 const SparadeClient = () => {
   const isLoggedIn = useLoggedIn();
-  const cachedRecipes = peekRecipeList();
-  const cachedFavorites = isLoggedIn ? peekFavoriteIds() : undefined;
+  const cachedFavorites = isLoggedIn ? peekFavoriteRecipes() : undefined;
 
-  const [recipes, setRecipes] = useState<Recipe[]>(cachedRecipes ?? []);
-  const [isLoadingRecipes, setIsLoadingRecipes] = useState(cachedRecipes === undefined);
-  const [favoriteIds, setFavoriteIds] = useState<string[]>(cachedFavorites ?? []);
-  const [favoritesFetched, setFavoritesFetched] = useState(
-    cachedFavorites !== undefined
-  );
+  const [favoriteRecipes, setFavoriteRecipes] = useState<Recipe[]>(cachedFavorites ?? []);
+  const [isLoadingRecipes, setIsLoadingRecipes] = useState(cachedFavorites === undefined);
   const localRecipes = useLocalRecipes();
 
   useEffect(() => {
-    let cancelled = false;
-    void fetchRecipeList().then((list) => {
-      if (!cancelled) {
-        setRecipes(list);
-        setIsLoadingRecipes(false);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!isLoggedIn || favoritesFetched) {
+    if (!isLoggedIn) {
       return;
     }
 
     let cancelled = false;
-    void fetchFavoriteIds().then((ids) => {
+    void fetchFavoriteRecipes().then((recipes) => {
       if (!cancelled) {
-        setFavoriteIds(ids);
-        setFavoritesFetched(true);
+        setFavoriteRecipes(recipes);
+        setIsLoadingRecipes(false);
       }
     });
 
     return () => {
       cancelled = true;
     };
-  }, [isLoggedIn, favoritesFetched]);
-
-  const allRecipes = useMemo(
-    () => mergeRecipes(localRecipes, recipes),
-    [localRecipes, recipes]
-  );
+  }, [isLoggedIn]);
 
   const savedRecipes = useMemo(() => {
-    const ids = isLoggedIn ? favoriteIds : [];
-    return allRecipes.filter(
-      (recipe) => ids.includes(recipe._id) || recipe.localOnly
+    const remote = favoriteRecipes.map(enrichRecipe);
+    const remoteIds = new Set(remote.map((recipe) => recipe._id));
+    const localOnly = localRecipes.filter(
+      (recipe) => recipe.localOnly && !remoteIds.has(recipe._id)
     );
-  }, [allRecipes, favoriteIds, isLoggedIn]);
+    return [...localOnly, ...remote];
+  }, [favoriteRecipes, localRecipes]);
 
-  const showSkeleton =
-    isLoggedIn &&
-    savedRecipes.length === 0 &&
-    (isLoadingRecipes || !favoritesFetched);
+  const showSkeleton = isLoggedIn && savedRecipes.length === 0 && isLoadingRecipes;
 
   const onToggleFavorite = (recipeId: string) => {
     if (!isLoggedIn) return;
@@ -92,7 +63,10 @@ const SparadeClient = () => {
         });
         if (!response.ok) return;
         removeFavoriteId(recipeId);
-        setFavoriteIds((current) => current.filter((id) => id !== recipeId));
+        removeFavoriteRecipe(recipeId);
+        setFavoriteRecipes((current) =>
+          current.filter((recipe) => recipe._id !== recipeId)
+        );
       } catch {
         // ignore
       }
@@ -126,7 +100,7 @@ const SparadeClient = () => {
           <section className="mt-8 rounded-lg border border-dashed border-stone-300 bg-white p-8 text-center">
             <h2 className="text-xl font-bold text-stone-950">Logga in för sparade recept</h2>
             <p className="mt-2 text-stone-600">
-              Sparade favoriter ar kopplade till ditt konto i inloggat lage.
+              Sparade favoriter är kopplade till ditt konto i inloggat läge.
             </p>
             <Link
               href="/login"

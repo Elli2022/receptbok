@@ -1,5 +1,6 @@
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const appRoot = dirname(fileURLToPath(import.meta.url));
 
@@ -22,4 +23,11 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+const sentryEnabled = Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN);
+
+export default sentryEnabled
+  ? withSentryConfig(nextConfig, {
+      silent: true,
+      disableLogger: true,
+    })
+  : nextConfig;

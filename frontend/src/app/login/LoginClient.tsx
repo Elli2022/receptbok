@@ -1,21 +1,21 @@
+"use client";
+
 import React, { useState } from "react";
 import Link from "next/link";
-import Navbar from "@/app/components/Navbar";
+import { useRouter, useSearchParams } from "next/navigation";
 import Footer from "@/app/components/Footer";
 import AuthShell from "@/app/components/AuthShell";
-import { useRouter } from "next/router";
 import { notifyAuthChange } from "@/lib/auth/local-user";
-
 import { authButtonClassName, authInputClassName } from "@/lib/auth/input-styles";
 
-const Login = () => {
+const LoginClient = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const nextPath =
-    typeof router.query.next === "string" ? router.query.next : "/recept";
-  const resetSuccess = router.query.reset === "1";
+  const searchParams = useSearchParams();
+  const nextPath = searchParams?.get("next") ?? "/recept";
+  const resetSuccess = searchParams?.get("reset") === "1";
 
   const onChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [event.target.name]: event.target.value });
@@ -54,8 +54,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      <Navbar />
+    <>
       <AuthShell
         eyebrow="Välkommen tillbaka"
         title="Logga in"
@@ -102,11 +101,7 @@ const Login = () => {
               Glömt lösenord?
             </Link>
           </p>
-          <button
-            type="submit"
-            disabled={loading}
-            className={authButtonClassName}
-          >
+          <button type="submit" disabled={loading} className={authButtonClassName}>
             {loading ? "Loggar in..." : "Logga in"}
           </button>
         </form>
@@ -122,8 +117,8 @@ const Login = () => {
         </p>
       </AuthShell>
       <Footer />
-    </div>
+    </>
   );
 };
 
-export default Login;
+export default LoginClient;

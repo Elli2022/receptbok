@@ -1,11 +1,15 @@
+"use client";
+
 import React, { useEffect } from "react";
-import { useRouter } from "next/router";
-import Navbar from "@/app/components/Navbar";
+import { useRouter, useSearchParams } from "next/navigation";
 import Footer from "@/app/components/Footer";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
+import { notifyAuthChange } from "@/lib/auth/local-user";
 
-const AuthCallback = () => {
+const AuthCallbackClient = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = searchParams?.get("next") ?? "/recept";
   const error = (() => {
     if (typeof window === "undefined") {
       return "";
@@ -17,11 +21,6 @@ const AuthCallback = () => {
   })();
 
   useEffect(() => {
-    if (!router.isReady) {
-      return;
-    }
-
-    const nextPath = typeof router.query.next === "string" ? router.query.next : "/recept";
     if (error) {
       return;
     }
@@ -29,7 +28,17 @@ const AuthCallback = () => {
     getSupabaseBrowserClient()
       .auth.getSession()
       .then(({ data }) => {
-        if (data.session) {
+        if (data.session?.user) {
+          localStorage.setItem(
+            "receptbok.user",
+            JSON.stringify({
+              id: data.session.user.id,
+              email: data.session.user.email,
+              name: data.session.user.user_metadata?.name,
+              username: data.session.user.user_metadata?.username,
+            })
+          );
+          notifyAuthChange();
           router.replace(nextPath);
           return;
         }
@@ -39,19 +48,16 @@ const AuthCallback = () => {
       .catch(() => {
         router.replace(`/login?confirmed=1&next=${encodeURIComponent(nextPath)}`);
       });
-  }, [error, router]);
+  }, [error, nextPath, router]);
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      <Navbar />
+    <>
       <main className="mx-auto max-w-lg px-4 py-12">
         <section className="rounded-lg border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
           <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">
             Konto
           </p>
-          <h1 className="mt-2 text-3xl font-bold text-stone-950">
-            Bekräftar e-post
-          </h1>
+          <h1 className="mt-2 text-3xl font-bold text-stone-950">Bekräftar e-post</h1>
           {error ? (
             <p className="mt-5 rounded-md bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
               {error}
@@ -64,8 +70,8 @@ const AuthCallback = () => {
         </section>
       </main>
       <Footer />
-    </div>
+    </>
   );
 };
 
-export default AuthCallback;
+export default AuthCallbackClient;

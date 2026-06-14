@@ -58,9 +58,17 @@ export const normalizeRecipe = (recipe: any): Recipe => ({
       ? String(recipe.owner_name)
       : undefined,
   category: recipe?.category ? String(recipe.category) : "Okategoriserat",
-  mealType: recipe?.mealType ? String(recipe.mealType) : undefined,
+  mealType: recipe?.mealType
+    ? String(recipe.mealType)
+    : recipe?.meal_type
+      ? String(recipe.meal_type)
+      : undefined,
   prepTimeMinutes:
-    recipe?.prepTimeMinutes != null ? Number(recipe.prepTimeMinutes) : undefined,
+    recipe?.prepTimeMinutes != null
+      ? Number(recipe.prepTimeMinutes)
+      : recipe?.prep_time_minutes != null
+        ? Number(recipe.prep_time_minutes)
+        : undefined,
   tags: Array.isArray(recipe?.tags) ? recipe.tags.map(String) : [],
   portions: recipe?.portions ?? "",
   description: recipe?.description ? String(recipe.description) : "",
@@ -76,12 +84,12 @@ export const normalizeRecipe = (recipe: any): Recipe => ({
 });
 
 export const recipeImage = (recipe: Recipe) => {
-  const embedded = recipe._id ? EMBEDDED_RECIPE_IMAGE_BY_ID[recipe._id] : "";
-  if (embedded) {
-    return embedded;
-  }
   const image = recipe.image?.trim() ?? "";
-  return image || "/images/heroImageLandingPage.jpg";
+  if (image) {
+    return image;
+  }
+  const legacy = recipe._id ? EMBEDDED_RECIPE_IMAGE_BY_ID[recipe._id] : "";
+  return legacy || "/images/heroImageLandingPage.jpg";
 };
 
 export const recipeMatchesSearch = (recipe: Recipe, searchTerm: string) => {
@@ -113,13 +121,11 @@ export const enrichRecipe = (recipe: Recipe): Recipe => {
   const mealType =
     recipe.mealType ??
     inferMealType(recipe.category, recipe.name, recipe.description);
-  const inferredTags = inferDietTags({ ...recipe, mealType });
-  const tags = [
-    ...new Set([
-      ...(recipe.tags ?? []).map((tag) => tag.toLowerCase()),
-      ...inferredTags,
-    ]),
-  ];
+  const dbTags = (recipe.tags ?? []).map((tag) => tag.toLowerCase()).filter(Boolean);
+  const tags =
+    dbTags.length > 0
+      ? dbTags
+      : inferDietTags({ ...recipe, mealType });
 
   return { ...recipe, mealType, tags };
 };

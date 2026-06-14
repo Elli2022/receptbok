@@ -12,7 +12,7 @@ export async function listRecipesForServer() {
   const { data, error } = await supabase
     .from("recipes")
     .select(
-      "id,owner_name,name,description,portions,category,ingredients,image,source_image,created_at"
+      "id,owner_name,name,description,portions,category,meal_type,tags,prep_time_minutes,ingredients,image,source_image,created_at"
     )
     .order("created_at", { ascending: false });
 
@@ -23,7 +23,7 @@ export async function listRecipesForServer() {
 
   const rows = ((data ?? []) as Partial<RecipeRow>[]).map((row) => ({
     ...row,
-    image: resolveRecipeImageForServer(row.id, row.image),
+    image: resolveRecipeImageForServer(row.id, row.image) || row.image || "",
     source_image: row.source_image ?? "",
   })) as RecipeRow[];
 

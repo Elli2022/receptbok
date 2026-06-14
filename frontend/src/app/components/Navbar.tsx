@@ -9,12 +9,9 @@ import {
   peekFavoriteIds,
   prefetchFavoriteIds,
 } from "@/lib/favorites-cache";
+import { clearFavoriteRecipesCache } from "@/lib/favorites-recipes-cache";
 import { peekRecipeList, prefetchRecipeList } from "@/lib/recipe-list-cache";
-import {
-  isNavLinkActive,
-  isPagesRouterPath,
-  useNavbarPathname,
-} from "@/lib/use-navbar-pathname";
+import { isNavLinkActive, useNavbarPathname } from "@/lib/use-navbar-pathname";
 
 const NAV_LINKS = [
   { href: "/", label: "Hem" },
@@ -22,47 +19,6 @@ const NAV_LINKS = [
   { href: "/sparade", label: "Sparade" },
   { href: "/about", label: "Om" },
 ] as const;
-
-type NavbarLinkProps = {
-  href: string;
-  className: string;
-  children: React.ReactNode;
-  onNavigate?: () => void;
-  "aria-current"?: "page";
-};
-
-/** Pages Router → App Router: vanlig länk undviker dubbelklick i hybrid Next.js. */
-function NavbarLink({
-  href,
-  className,
-  children,
-  onNavigate,
-  "aria-current": ariaCurrent,
-}: NavbarLinkProps) {
-  const pathname = useNavbarPathname();
-  const crossRouter =
-    isPagesRouterPath(pathname) && !isPagesRouterPath(href.split("#")[0] ?? href);
-
-  if (crossRouter) {
-    return (
-      <a href={href} className={className} aria-current={ariaCurrent} onClick={onNavigate}>
-        {children}
-      </a>
-    );
-  }
-
-  return (
-    <Link
-      href={href}
-      className={className}
-      aria-current={ariaCurrent}
-      onClick={onNavigate}
-      prefetch
-    >
-      {children}
-    </Link>
-  );
-}
 
 const Navbar = () => {
   const pathname = useNavbarPathname();
@@ -91,6 +47,7 @@ const Navbar = () => {
   const onLogout = () => {
     window.localStorage.removeItem("receptbok.user");
     clearFavoriteIdsCache();
+    clearFavoriteRecipesCache();
     notifyAuthChange();
     window.location.href = "/";
   };
@@ -108,13 +65,14 @@ const Navbar = () => {
   return (
     <header className="sticky top-0 z-50 border-b border-stone-200 bg-white">
       <nav className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-        <NavbarLink
+        <Link
           href="/"
           className="text-lg font-bold tracking-tight text-stone-950"
-          onNavigate={closeMenuAfterNavigate}
+          onClick={closeMenuAfterNavigate}
+          prefetch
         >
           Receptbok
-        </NavbarLink>
+        </Link>
         <button
           type="button"
           className="inline-flex rounded-full border border-stone-300 px-3 py-2 text-sm font-medium text-stone-700 md:hidden"
@@ -129,23 +87,25 @@ const Navbar = () => {
           className={`${menuOpen ? "flex" : "hidden"} absolute left-0 right-0 top-full flex-col gap-2 border-b border-stone-200 bg-white px-4 py-4 shadow-sm md:static md:flex md:flex-row md:items-center md:justify-end md:border-0 md:bg-transparent md:p-0 md:shadow-none`}
         >
           {NAV_LINKS.map((link) => (
-            <NavbarLink
+            <Link
               key={link.href}
               href={link.href}
               className={linkClass(link.href)}
-              onNavigate={closeMenuAfterNavigate}
+              onClick={closeMenuAfterNavigate}
               aria-current={isNavLinkActive(pathname, link.href) ? "page" : undefined}
+              prefetch
             >
               {link.label}
-            </NavbarLink>
+            </Link>
           ))}
-          <NavbarLink
+          <Link
             href="/recept#nytt-recept"
             className="rounded-full bg-rose-700 px-4 py-2 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-rose-800"
-            onNavigate={closeMenuAfterNavigate}
+            onClick={closeMenuAfterNavigate}
+            prefetch
           >
             Nytt recept
-          </NavbarLink>
+          </Link>
           {isLoggedIn ? (
             <button
               type="button"
@@ -155,13 +115,14 @@ const Navbar = () => {
               Logga ut
             </button>
           ) : (
-            <NavbarLink
+            <Link
               href="/login"
               className="rounded-full border border-stone-300 px-3 py-2 text-center text-sm font-medium text-stone-700 transition hover:bg-stone-100 hover:text-stone-950"
-              onNavigate={closeMenuAfterNavigate}
+              onClick={closeMenuAfterNavigate}
+              prefetch
             >
               Logga in
-            </NavbarLink>
+            </Link>
           )}
         </div>
       </nav>

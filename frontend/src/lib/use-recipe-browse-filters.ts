@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useDeferredValue, useMemo, useState } from "react";
-import { recipeMatchesSearch, sortRecipes, type Recipe } from "@/lib/recipes";
+import type { Recipe } from "@/lib/recipes";
+import {
+  filterRecipesForBrowse,
+  hasActiveBrowseFilters,
+} from "@/lib/recipe-browse-filter";
 import {
   mealFromQuery,
-  recipeMatchesDiet,
-  recipeMatchesMeal,
   type DietTagId,
   type MealTypeId,
   type SortId,
@@ -28,18 +30,22 @@ export function useRecipeBrowseFilters(
   const [sortBy, setSortBy] = useState<SortId>("newest");
   const deferredSearch = useDeferredValue(searchTerm);
   const hasActiveSearch = deferredSearch.trim().length > 0;
-  const hasActiveBrowse =
-    hasActiveSearch || mealFilter !== "alla" || dietFilter !== null;
+  const hasActiveBrowse = hasActiveBrowseFilters({
+    searchTerm: deferredSearch,
+    mealFilter,
+    dietFilter,
+  });
 
-  const filteredRecipes = useMemo(() => {
-    const list = recipes.filter((recipe) => {
-      if (!recipeMatchesSearch(recipe, deferredSearch)) return false;
-      if (hasActiveSearch) return true;
-      if (!recipeMatchesMeal(recipe, mealFilter)) return false;
-      return recipeMatchesDiet(recipe, dietFilter);
-    });
-    return sortRecipes(list, sortBy);
-  }, [recipes, deferredSearch, hasActiveSearch, mealFilter, dietFilter, sortBy]);
+  const filteredRecipes = useMemo(
+    () =>
+      filterRecipesForBrowse(recipes, {
+        searchTerm: deferredSearch,
+        mealFilter,
+        dietFilter,
+        sortBy,
+      }),
+    [recipes, deferredSearch, mealFilter, dietFilter, sortBy]
+  );
 
   const onSearchChange = useCallback((value: string) => {
     setSearchTerm(value);

@@ -30,8 +30,18 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Unit tests
+        run: npm run test:unit
+
       - name: Build
         run: npm run build
+
+      - name: Verify Supabase (optional)
+        continue-on-error: true
+        run: npm run verify:supabase
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
   e2e:
     runs-on: ubuntu-latest
@@ -92,3 +102,9 @@ jobs:
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
+      - name: Post-deploy health check
+        run: |
+          curl --fail --retry 5 --retry-delay 5 --retry-all-errors \
+            -o /dev/null -s -w "HTTP %{http_code}\n" \
+            https://recipe-book-platform.netlify.app/recept

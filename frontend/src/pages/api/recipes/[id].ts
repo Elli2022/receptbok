@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import * as Sentry from "@sentry/nextjs";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveRecipeImageForServer } from "@/lib/supabase/embedded-recipe-images";
 import { createSupabasePagesApiClient } from "@/lib/supabase/pages-api-client";
@@ -218,6 +219,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader("Allow", ["GET", "PUT", "DELETE"]);
     return res.status(405).json({ message: "Metoden är inte tillåten." });
   } catch (e) {
+    Sentry.captureException(e);
     return res.status(500).json({
       message: "Kunde inte hantera receptet.",
       error: e instanceof Error ? e.message : "Okänt fel",

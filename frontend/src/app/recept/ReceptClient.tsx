@@ -124,6 +124,7 @@ const ReceptClient = ({
     setMealFilter,
     onDietFilterChange,
     setSortBy,
+    resetFilters,
   } = useRecipeBrowseFilters(allRecipes, { initialSearch, initialMeal });
 
   const onDraftChange = (
@@ -276,6 +277,8 @@ const ReceptClient = ({
             sortBy={sortBy}
             onSortChange={setSortBy}
             showSort
+            showReset={hasActiveBrowse}
+            onResetFilters={resetFilters}
           />
         }
         headerActions={
@@ -314,10 +317,20 @@ const ReceptClient = ({
         {isLoadingRecipes ? (
           <RecipeListSkeleton />
         ) : filteredRecipes.length === 0 && hasActiveBrowse ? (
-          <p className="mt-6 rounded-2xl border border-dashed border-stone-300 bg-white px-6 py-10 text-center text-stone-600">
-            Inga recept matchar dina filter just nu. Prova att ta bort ett kost- eller
-            måltidsfilter.
-          </p>
+          <section className="mt-6 rounded-2xl border border-dashed border-stone-300 bg-white px-6 py-10 text-center">
+            <h2 className="text-lg font-bold text-stone-950">Inga recept matchar filtren</h2>
+            <p className="mt-2 text-stone-600">
+              Prova att ta bort ett kost- eller måltidsfilter, eller rensa alla filter för att
+              se hela biblioteket igen.
+            </p>
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="mt-4 inline-flex rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-rose-300 hover:text-rose-800"
+            >
+              Rensa filter
+            </button>
+          </section>
         ) : (
           <section className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {filteredRecipes.map((recipe) => (

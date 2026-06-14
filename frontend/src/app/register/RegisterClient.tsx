@@ -1,14 +1,17 @@
+"use client";
+
 import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/router";
-import Navbar from "@/app/components/Navbar";
+import { useRouter, useSearchParams } from "next/navigation";
 import Footer from "@/app/components/Footer";
 import { getAuthRedirectOrigin } from "@/lib/auth/site-url";
 import { getSupabaseBrowserClient } from "@/lib/supabaseClient";
+import { notifyAuthChange } from "@/lib/auth/local-user";
 
-const Register = () => {
+const RegisterClient = () => {
   const router = useRouter();
-  const nextPath = typeof router.query.next === "string" ? router.query.next : "/recept";
+  const searchParams = useSearchParams();
+  const nextPath = searchParams?.get("next") ?? "/recept";
   const [formData, setFormData] = useState({
     name: "",
     username: "",
@@ -33,7 +36,7 @@ const Register = () => {
       const origin = getAuthRedirectOrigin(window.location.origin);
       const emailRedirectTo = `${origin}/auth/callback?next=${encodeURIComponent(nextPath)}`;
 
-      const { data, error } = await getSupabaseBrowserClient().auth.signUp({
+      const { data, error: signUpError } = await getSupabaseBrowserClient().auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
@@ -45,8 +48,8 @@ const Register = () => {
         },
       });
 
-      if (error) {
-        throw new Error(error.message || "Registreringen misslyckades.");
+      if (signUpError) {
+        throw new Error(signUpError.message || "Registreringen misslyckades.");
       }
 
       if (!data.session) {
@@ -56,11 +59,24 @@ const Register = () => {
         return;
       }
 
+      if (data.user) {
+        localStorage.setItem(
+          "receptbok.user",
+          JSON.stringify({
+            id: data.user.id,
+            email: data.user.email,
+            name: formData.name,
+            username: formData.username,
+          })
+        );
+        notifyAuthChange();
+      }
+
       router.push(nextPath);
-    } catch (error) {
+    } catch (submitError) {
       setError(
-        error instanceof Error
-          ? error.message
+        submitError instanceof Error
+          ? submitError.message
           : "Ett oväntat fel inträffade. Försök igen."
       );
     } finally {
@@ -69,16 +85,13 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      <Navbar />
+    <>
       <main className="mx-auto max-w-lg px-4 py-12">
         <section className="rounded-lg border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
           <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">
             Nytt konto
           </p>
-          <h1 className="mt-2 text-3xl font-bold text-stone-950">
-            Registrera dig
-          </h1>
+          <h1 className="mt-2 text-3xl font-bold text-stone-950">Registrera dig</h1>
           <p className="mt-3 text-stone-600">
             Efter registrering är du inloggad direkt och kan börja spara recept.
           </p>
@@ -161,8 +174,8 @@ const Register = () => {
         </section>
       </main>
       <Footer />
-    </div>
+    </>
   );
 };
 
-export default Register;
+export default RegisterClient;

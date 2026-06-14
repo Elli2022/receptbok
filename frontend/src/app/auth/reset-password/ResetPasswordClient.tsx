@@ -1,13 +1,15 @@
+"use client";
+
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/router";
 import Link from "next/link";
-import Navbar from "@/app/components/Navbar";
+import { useRouter, useSearchParams } from "next/navigation";
 import Footer from "@/app/components/Footer";
 import ResetPasswordModal from "@/app/components/ResetPasswordModal";
 import { getSupabaseBrowserClient, hasSupabaseConfig } from "@/lib/supabaseClient";
 
-const ResetPasswordPage = () => {
+const ResetPasswordClient = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabaseConfigured = hasSupabaseConfig();
   const [ready, setReady] = useState(!supabaseConfigured);
   const [modalOpen, setModalOpen] = useState(false);
@@ -16,8 +18,12 @@ const ResetPasswordPage = () => {
   );
   const [completed, setCompleted] = useState(false);
 
+  const code = searchParams?.get("code");
+  const tokenHash = searchParams?.get("token_hash");
+  const queryType = searchParams?.get("type");
+
   useEffect(() => {
-    if (!supabaseConfigured || !router.isReady) {
+    if (!supabaseConfigured) {
       return;
     }
 
@@ -59,11 +65,8 @@ const ResetPasswordPage = () => {
         return;
       }
 
-      const code =
-        typeof router.query.code === "string" ? router.query.code : null;
       if (code) {
-        const { error: exchangeError } =
-          await supabase.auth.exchangeCodeForSession(code);
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
 
         if (exchangeError) {
           fail(exchangeError.message);
@@ -73,13 +76,6 @@ const ResetPasswordPage = () => {
         finishWithSession();
         return;
       }
-
-      const tokenHash =
-        typeof router.query.token_hash === "string"
-          ? router.query.token_hash
-          : null;
-      const queryType =
-        typeof router.query.type === "string" ? router.query.type : null;
 
       if (tokenHash && queryType === "recovery") {
         const { error: verifyError } = await supabase.auth.verifyOtp({
@@ -121,7 +117,7 @@ const ResetPasswordPage = () => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [supabaseConfigured, router.isReady, router.query.code, router.query.token_hash, router.query.type]);
+  }, [supabaseConfigured, code, tokenHash, queryType]);
 
   const onSuccess = async () => {
     setCompleted(true);
@@ -133,8 +129,7 @@ const ResetPasswordPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-stone-50">
-      <Navbar />
+    <>
       <main className="mx-auto max-w-lg px-4 py-12">
         <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
           <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">
@@ -185,8 +180,8 @@ const ResetPasswordPage = () => {
       />
 
       <Footer />
-    </div>
+    </>
   );
 };
 
-export default ResetPasswordPage;
+export default ResetPasswordClient;
