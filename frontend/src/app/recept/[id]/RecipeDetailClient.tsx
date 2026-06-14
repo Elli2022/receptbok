@@ -108,7 +108,7 @@ const RecipeDetailClient = () => {
       setEditMode(false);
       setCheckedSteps({});
       setIsBootstrapping(false);
-      preloadRecipeImageUrl(recipeImage(next), { width: 1200, quality: 75 });
+      preloadRecipeImageUrl(recipeImage(next), { width: 800, quality: 75 });
       if (recipeNeedsMediaFetch(next)) void loadMedia();
 
       if (

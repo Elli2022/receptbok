@@ -25,6 +25,7 @@ const RecipeCard = ({ recipe, href, onPrefetch, onNavigate, footer }: RecipeCard
     >
       <Link
         href={href}
+        prefetch={false}
         className="flex flex-1 flex-col"
         onClick={() => onNavigate?.()}
       >

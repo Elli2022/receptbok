@@ -1,4 +1,4 @@
-import { stashRecipeDetail } from "@/lib/recipe-detail-cache";
+import { fetchRecipeBasic, stashRecipeDetail } from "@/lib/recipe-detail-cache";
 import { preloadRecipeImageUrl } from "@/lib/recipe-image-preload";
 import { recipeImage, type Recipe } from "@/lib/recipes";
 
@@ -12,7 +12,10 @@ function runPrefetch(
 ) {
   stashRecipeDetail(recipe);
   router?.prefetch(`/recept/${recipe._id}`);
-  preloadRecipeImageUrl(recipeImage(recipe), { width: 1200, quality: 75 });
+  preloadRecipeImageUrl(recipeImage(recipe), { width: 640, quality: 70 });
+  if (!recipe.localOnly && recipe.instructions.length === 0) {
+    void fetchRecipeBasic(recipe._id);
+  }
 }
 
 const hoverTimers = new Map<string, ReturnType<typeof setTimeout>>();

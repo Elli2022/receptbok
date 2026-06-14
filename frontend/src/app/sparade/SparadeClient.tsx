@@ -116,7 +116,7 @@ const SparadeClient = () => {
                 key={recipe._id}
                 className="overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
               >
-                <Link href={`/recept/${recipe._id}`} className="block">
+                <Link href={`/recept/${recipe._id}`} prefetch={false} className="block">
                   <RecipeImage src={recipeImage(recipe)} alt={recipe.name} />
                   <div className="p-5">
                     <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-emerald-700">
