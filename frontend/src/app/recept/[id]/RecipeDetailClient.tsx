@@ -9,6 +9,7 @@ import RecipeImage from "@/app/components/RecipeImage";
 import {
   Recipe,
   getLocalRecipes,
+  normalizeRecipe,
   recipeImage,
   updateLocalRecipe,
 } from "@/lib/recipes";
@@ -16,6 +17,7 @@ import {
   fetchRecipeBasic,
   peekRecipeDetail,
   recipeNeedsMediaFetch,
+  stashRecipeDetail,
 } from "@/lib/recipe-detail-cache";
 import { preloadRecipeImageUrl } from "@/lib/recipe-image-preload";
 import { peekRecipeList } from "@/lib/recipe-list-cache";
@@ -28,10 +30,18 @@ import {
 import { useLoggedIn } from "@/lib/auth/use-logged-in";
 import { RecipeAttribution } from "@/lib/recipe-attribution";
 
-function resolveRecipeFromCache(recipeId: string): Recipe | null {
+function resolveRecipeFromCache(
+  recipeId: string,
+  initialRecipe?: Recipe | null
+): Recipe | null {
   const local = getLocalRecipes().find((item) => item._id === recipeId);
   if (local) {
     return local;
+  }
+  if (initialRecipe && initialRecipe._id === recipeId) {
+    const normalized = normalizeRecipe(initialRecipe);
+    stashRecipeDetail(normalized);
+    return normalized;
   }
   const cached = peekRecipeDetail(recipeId);
   if (cached) {
@@ -40,16 +50,27 @@ function resolveRecipeFromCache(recipeId: string): Recipe | null {
   return peekRecipeList()?.find((item) => item._id === recipeId) ?? null;
 }
 
-const RecipeDetailClient = () => {
+type RecipeDetailClientProps = {
+  initialRecipe?: Recipe | null;
+};
+
+const RecipeDetailClient = ({ initialRecipe = null }: RecipeDetailClientProps) => {
   const params = useParams<{ id: string }>();
   const id = typeof params?.id === "string" ? params.id : "";
-  const initialRecipe = id ? resolveRecipeFromCache(id) : null;
-  const [recipe, setRecipe] = useState<Recipe | null>(initialRecipe);
+  const resolvedInitial = id ? resolveRecipeFromCache(id, initialRecipe) : null;
+  const [recipe, setRecipe] = useState<Recipe | null>(resolvedInitial);
   const [checkedSteps, setCheckedSteps] = useState<Record<number, boolean>>({});
   const [isBootstrapping, setIsBootstrapping] = useState(
-    () => Boolean(id) && !initialRecipe
+    () => Boolean(id) && !resolvedInitial
   );
-  const [isLoadingInstructions, setIsLoadingInstructions] = useState(false);
+  const [isLoadingInstructions, setIsLoadingInstructions] = useState(
+    () =>
+      Boolean(
+        resolvedInitial &&
+          resolvedInitial.instructions.length === 0 &&
+          !resolvedInitial.localOnly
+      )
+  );
   const [error, setError] = useState("");
   const [favoriteHint, setFavoriteHint] = useState("");
   const isLoggedIn = useLoggedIn();
@@ -132,9 +153,13 @@ const RecipeDetailClient = () => {
     };
 
     const loadRecipe = async () => {
-      const instant = resolveRecipeFromCache(id);
+      const instant = resolveRecipeFromCache(id, initialRecipe);
       if (instant) {
-        showRecipe(instant);
+        showRecipe(instant, {
+          skipInstructionFetch:
+            Boolean(initialRecipe && initialRecipe._id === id) ||
+            instant.instructions.length > 0,
+        });
         return;
       }
 
@@ -156,7 +181,7 @@ const RecipeDetailClient = () => {
 
     void loadRecipe();
     return () => ac.abort();
-  }, [id]);
+  }, [id, initialRecipe]);
 
   useEffect(() => {
     if (!isLoggedIn || !recipe?._id) {

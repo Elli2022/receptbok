@@ -18,7 +18,6 @@ import {
   saveLocalRecipe,
   saveLocalRecipeCopy,
 } from "@/lib/recipes";
-import { getStoredUser } from "@/lib/auth/local-user";
 import { useLoggedIn } from "@/lib/auth/use-logged-in";
 import { useLocalRecipes } from "@/lib/use-local-recipes";
 import {
@@ -31,6 +30,7 @@ import {
   fetchRecipeList,
   peekRecipeList,
   prependRecipeToList,
+  stashRecipeList,
 } from "@/lib/recipe-list-cache";
 import {
   prefetchRecipeDetailOnClick,
@@ -38,12 +38,18 @@ import {
 } from "@/lib/recipe-prefetch";
 import { useRecipeBrowseFilters } from "@/lib/use-recipe-browse-filters";
 import type { MealTypeId } from "@/lib/recipe-taxonomy";
+import { getStoredUser } from "@/lib/auth/local-user";
+
+function prepareRecipeList(recipes?: Recipe[]): Recipe[] {
+  return recipes?.map(normalizeRecipe).map(enrichRecipe) ?? [];
+}
 
 type ReceptClientProps = {
   initialSearch?: string;
   initialMeal?: MealTypeId;
   /** Startsidan visar bara browse — formuläret finns på /recept. */
   showCreateForm?: boolean;
+  initialRecipes?: Recipe[];
 };
 
 const emptyDraft: RecipeDraft = {
@@ -61,11 +67,20 @@ const ReceptClient = ({
   initialSearch = "",
   initialMeal = "alla",
   showCreateForm = true,
+  initialRecipes,
 }: ReceptClientProps) => {
   const router = useRouter();
-  const cached = peekRecipeList();
-  const [remoteRecipes, setRemoteRecipes] = useState<Recipe[]>(cached ?? []);
-  const [isLoadingRecipes, setIsLoadingRecipes] = useState(!cached);
+  const preparedInitial = prepareRecipeList(initialRecipes);
+  const [remoteRecipes, setRemoteRecipes] = useState<Recipe[]>(() => {
+    if (preparedInitial.length) {
+      stashRecipeList(preparedInitial);
+      return preparedInitial;
+    }
+    return peekRecipeList() ?? [];
+  });
+  const [isLoadingRecipes, setIsLoadingRecipes] = useState(
+    () => preparedInitial.length === 0 && peekRecipeList() === undefined
+  );
   const localRecipes = useLocalRecipes();
   const [favoriteIds, setFavoriteIds] = useState<string[]>(
     () => peekFavoriteIds() ?? []
@@ -76,6 +91,16 @@ const ReceptClient = ({
   const isLoggedIn = useLoggedIn();
   const activeFavoriteIds = isLoggedIn ? favoriteIds : [];
   const [heartLoadingId, setHeartLoadingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!initialRecipes?.length) {
+      return;
+    }
+    const next = prepareRecipeList(initialRecipes);
+    stashRecipeList(next);
+    setRemoteRecipes(next);
+    setIsLoadingRecipes(false);
+  }, [initialRecipes]);
 
   useEffect(() => {
     let cancelled = false;

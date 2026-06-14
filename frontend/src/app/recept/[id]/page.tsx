@@ -1,10 +1,22 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import RecipeDetailClient from "./RecipeDetailClient";
-import { getRecipeMetadataForServer } from "@/lib/supabase/get-recipe-server";
+import {
+  getRecipeBasicForServer,
+  getRecipeMetadataForServer,
+} from "@/lib/supabase/get-recipe-server";
+import { listRecipesForServer } from "@/lib/supabase/list-recipes-server";
+
+export const revalidate = 120;
 
 type Props = {
   params: Promise<{ id: string }>;
 };
+
+export async function generateStaticParams() {
+  const recipes = await listRecipesForServer();
+  return recipes.map((recipe) => ({ id: recipe._id }));
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
@@ -35,6 +47,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default function RecipeDetailPage() {
-  return <RecipeDetailClient />;
+export default async function RecipeDetailPage({ params }: Props) {
+  const { id } = await params;
+  const isLocalRecipe = id.startsWith("local-");
+  const initialRecipe = isLocalRecipe ? null : await getRecipeBasicForServer(id);
+
+  if (!isLocalRecipe && !initialRecipe) {
+    notFound();
+  }
+
+  return <RecipeDetailClient initialRecipe={initialRecipe} />;
 }

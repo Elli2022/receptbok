@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import ReceptClient from "./ReceptClient";
 import { mealFromQuery, type MealTypeId } from "@/lib/recipe-taxonomy";
+import { getRecipesForBrowsePage } from "@/lib/supabase/recipes-for-page";
+
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Recept",
@@ -18,11 +21,14 @@ export default async function ReceptPage({ searchParams }: PageProps) {
     ? "alla"
     : mealFromQuery(params.meal);
 
+  const initialRecipes = await getRecipesForBrowsePage();
+
   return (
     <ReceptClient
       key={`${initialSearch}-${initialMeal}`}
       initialSearch={initialSearch}
       initialMeal={initialMeal}
+      initialRecipes={initialRecipes}
     />
   );
 }

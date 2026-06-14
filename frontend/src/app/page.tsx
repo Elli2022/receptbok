@@ -1,6 +1,10 @@
 import ReceptClient from "./recept/ReceptClient";
+import { getRecipesForBrowsePage } from "@/lib/supabase/recipes-for-page";
+
+export const revalidate = 60;
 
 /** Startsidan = samma vy som /recept (ingen separat hero-landning). */
-export default function Home() {
-  return <ReceptClient showCreateForm={false} />;
+export default async function Home() {
+  const initialRecipes = await getRecipesForBrowsePage();
+  return <ReceptClient showCreateForm={false} initialRecipes={initialRecipes} />;
 }
