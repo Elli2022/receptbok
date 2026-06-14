@@ -48,7 +48,12 @@ test.describe("Receptbok smoke", () => {
     await expect(
       page.getByRole("heading", { name: /logga in för sparade recept/i })
     ).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByRole("link", { name: "Logga in" })).toBeVisible();
+    await expect(
+      page
+        .locator("section")
+        .filter({ hasText: "Logga in för sparade recept" })
+        .getByRole("link", { name: "Logga in" })
+    ).toBeVisible();
   });
 
   test("recipe detail loads from library", async ({ page }) => {
@@ -71,19 +76,19 @@ test.describe("Receptbok smoke", () => {
     const nav = page.getByRole("navigation");
 
     await page.goto("/about", { waitUntil: "domcontentloaded" });
-    await expect(nav.getByRole("link", { name: "Om" })).toHaveClass(/bg-rose-50/);
-    await expect(nav.getByRole("link", { name: "Recept" })).not.toHaveClass(
+    await expect(nav.getByRole("link", { name: "Om", exact: true })).toHaveClass(/bg-rose-50/);
+    await expect(nav.getByRole("link", { name: "Recept", exact: true })).not.toHaveClass(
       /bg-rose-50/
     );
 
     await page.goto("/sparade", { waitUntil: "domcontentloaded" });
-    await expect(nav.getByRole("link", { name: "Sparade" })).toHaveClass(
+    await expect(nav.getByRole("link", { name: "Sparade", exact: true })).toHaveClass(
       /bg-rose-50/
     );
 
     await page.goto("/", { waitUntil: "domcontentloaded" });
-    await expect(nav.getByRole("link", { name: "Hem" })).toHaveClass(/bg-rose-50/);
-    await expect(nav.getByRole("link", { name: "Recept" })).not.toHaveClass(
+    await expect(nav.getByRole("link", { name: "Hem", exact: true })).toHaveClass(/bg-rose-50/);
+    await expect(nav.getByRole("link", { name: "Recept", exact: true })).not.toHaveClass(
       /bg-rose-50/
     );
   });
@@ -92,14 +97,14 @@ test.describe("Receptbok smoke", () => {
     page,
   }) => {
     await page.goto("/login", { waitUntil: "domcontentloaded" });
-    await page.getByRole("navigation").getByRole("link", { name: "Recept" }).click();
+    await page.getByRole("navigation").getByRole("link", { name: "Recept", exact: true }).click();
     await expect(page).toHaveURL(/\/recept\/?$/);
     await expect(page.getByPlaceholder(/sök recept/i)).toBeVisible({
       timeout: 15_000,
     });
 
     await page.goto("/about", { waitUntil: "domcontentloaded" });
-    await page.getByRole("navigation").getByRole("link", { name: "Sparade" }).click();
+    await page.getByRole("navigation").getByRole("link", { name: "Sparade", exact: true }).click();
     await expect(page).toHaveURL(/\/sparade\/?$/);
   });
 });
