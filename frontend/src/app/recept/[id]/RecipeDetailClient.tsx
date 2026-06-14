@@ -17,6 +17,8 @@ import {
   peekRecipeDetail,
   recipeNeedsMediaFetch,
 } from "@/lib/recipe-detail-cache";
+import { preloadRecipeImageUrl } from "@/lib/recipe-image-preload";
+import { peekRecipeList } from "@/lib/recipe-list-cache";
 import {
   addFavoriteId,
   fetchFavoriteIds,
@@ -31,17 +33,23 @@ function resolveRecipeFromCache(recipeId: string): Recipe | null {
   if (local) {
     return local;
   }
-  return peekRecipeDetail(recipeId) ?? null;
+  const cached = peekRecipeDetail(recipeId);
+  if (cached) {
+    return cached;
+  }
+  return peekRecipeList()?.find((item) => item._id === recipeId) ?? null;
 }
 
 const RecipeDetailClient = () => {
   const params = useParams<{ id: string }>();
   const id = typeof params?.id === "string" ? params.id : "";
-  const [recipe, setRecipe] = useState<Recipe | null>(() =>
-    id ? resolveRecipeFromCache(id) : null
-  );
+  const initialRecipe = id ? resolveRecipeFromCache(id) : null;
+  const [recipe, setRecipe] = useState<Recipe | null>(initialRecipe);
   const [checkedSteps, setCheckedSteps] = useState<Record<number, boolean>>({});
-  const [isLoading, setIsLoading] = useState(() => Boolean(id) && !resolveRecipeFromCache(id));
+  const [isBootstrapping, setIsBootstrapping] = useState(
+    () => Boolean(id) && !initialRecipe
+  );
+  const [isLoadingInstructions, setIsLoadingInstructions] = useState(false);
   const [error, setError] = useState("");
   const [favoriteHint, setFavoriteHint] = useState("");
   const isLoggedIn = useLoggedIn();
@@ -99,7 +107,8 @@ const RecipeDetailClient = () => {
       setRecipe(next);
       setEditMode(false);
       setCheckedSteps({});
-      setIsLoading(false);
+      setIsBootstrapping(false);
+      preloadRecipeImageUrl(recipeImage(next), { width: 1200, quality: 75 });
       if (recipeNeedsMediaFetch(next)) void loadMedia();
 
       if (
@@ -107,11 +116,18 @@ const RecipeDetailClient = () => {
         next.instructions.length === 0 &&
         !next.localOnly
       ) {
+        setIsLoadingInstructions(true);
         void fetchRecipeBasic(id).then((full) => {
-          if (ac.signal.aborted || !full) return;
+          if (ac.signal.aborted || !full) {
+            if (!ac.signal.aborted) setIsLoadingInstructions(false);
+            return;
+          }
           setRecipe(full);
+          setIsLoadingInstructions(false);
           if (recipeNeedsMediaFetch(full)) void loadMedia();
         });
+      } else {
+        setIsLoadingInstructions(false);
       }
     };
 
@@ -122,7 +138,7 @@ const RecipeDetailClient = () => {
         return;
       }
 
-      setIsLoading(true);
+      setIsBootstrapping(true);
       setError("");
       setRecipe(null);
 
@@ -134,7 +150,7 @@ const RecipeDetailClient = () => {
       } catch (e) {
         if (e instanceof DOMException && e.name === "AbortError") return;
         setError("Receptet kunde inte hittas.");
-        setIsLoading(false);
+        setIsBootstrapping(false);
       }
     };
 
@@ -219,7 +235,7 @@ const RecipeDetailClient = () => {
     })();
   };
 
-  if (!id || isLoading) {
+  if (!id || isBootstrapping) {
     return <RecipeDetailSkeleton />;
   }
 
@@ -471,7 +487,18 @@ const RecipeDetailClient = () => {
           <div className="rounded-lg border border-stone-200 bg-white p-6 shadow-sm">
             <h2 className="text-2xl font-bold text-stone-950">Gör så här</h2>
             <div className="mt-5 grid gap-4">
-              {recipe.instructions.length > 0 ? (
+              {isLoadingInstructions ? (
+                <>
+                  {[1, 2, 3].map((step) => (
+                    <div
+                      key={step}
+                      className="h-20 animate-pulse rounded-md border border-stone-200 bg-stone-100"
+                      aria-hidden
+                    />
+                  ))}
+                  <p className="text-sm text-stone-500">Hämtar instruktioner…</p>
+                </>
+              ) : recipe.instructions.length > 0 ? (
                 recipe.instructions.map((instruction, index) => (
                   <label
                     key={`${instruction}-${index}`}
