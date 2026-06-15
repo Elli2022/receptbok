@@ -1,0 +1,29 @@
+name: Uptime
+
+on:
+  schedule:
+    # Every 5 minutes (GitHub Actions minimum interval).
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: uptime-${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check production /api/health
+        env:
+          PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
+        run: |
+          BASE="${PRODUCTION_URL:-https://recipe-book-platform.netlify.app}"
+          HEALTH_URL="${BASE%/}/api/health"
+          echo "Checking ${HEALTH_URL}"
+          body="$(curl --fail --silent --show-error --max-time 30 "${HEALTH_URL}")"
+          echo "${body}"
+          echo "${body}" | grep -q '"status":"ok"' || {
+            echo "Expected {\"status\":\"ok\",...} from health endpoint"
+            exit 1
+          }

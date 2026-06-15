@@ -1,6 +1,8 @@
 # Uptime and health monitoring
 
-Use a free external monitor to get alerted when the site or API is down. No code changes are required beyond the built-in health endpoint.
+Production uses the built-in health endpoint plus automated checks. GitHub Actions runs [`.github/workflows/uptime.yml`](../.github/workflows/uptime.yml) every 5 minutes against `/api/health`; failed runs notify repo watchers via GitHub.
+
+For email alerts outside GitHub, add a free external monitor below.
 
 ## Health check URL
 

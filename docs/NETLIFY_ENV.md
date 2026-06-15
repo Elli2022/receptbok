@@ -6,17 +6,17 @@ Required for full production behavior (API routes, recipe CRUD, favorites):
 |----------|-------|--------|
 | `NEXT_PUBLIC_SUPABASE_URL` | All | Set on Netlify |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | All | Set on Netlify |
-| `SUPABASE_SERVICE_ROLE_KEY` | Build + runtime (server only) | **Add in Netlify UI** |
-| `NEXT_PUBLIC_SENTRY_DSN` | All | **Recommended** — enables error reporting |
-| `NEXT_PUBLIC_SITE_URL` | All | **Recommended** — canonical URLs, sitemap, auth redirects |
+| `SUPABASE_SERVICE_ROLE_KEY` | Build + runtime (server only) | Set on Netlify |
+| `NEXT_PUBLIC_SENTRY_DSN` | All | Set on Netlify |
+| `NEXT_PUBLIC_SITE_URL` | All | Set on Netlify (`https://recipe-book-platform.netlify.app`) |
 
 ## Quick checklist
 
-- [ ] `NEXT_PUBLIC_SUPABASE_URL` and anon/publishable key set
-- [ ] `SUPABASE_SERVICE_ROLE_KEY` set (server-only, never `NEXT_PUBLIC_`)
-- [ ] `NEXT_PUBLIC_SITE_URL` matches live URL (e.g. `https://recipe-book-platform.netlify.app`)
-- [ ] `NEXT_PUBLIC_SENTRY_DSN` set for error monitoring
-- [ ] External uptime monitor on `/api/health` — see [MONITORING.md](./MONITORING.md)
+- [x] `NEXT_PUBLIC_SUPABASE_URL` and anon/publishable key set
+- [x] `SUPABASE_SERVICE_ROLE_KEY` set (server-only, never `NEXT_PUBLIC_`)
+- [x] `NEXT_PUBLIC_SITE_URL` matches live URL (`https://recipe-book-platform.netlify.app`)
+- [x] `NEXT_PUBLIC_SENTRY_DSN` set for error monitoring
+- [x] Uptime monitor on `/api/health` — GitHub Actions workflow [uptime.yml](../.github/workflows/uptime.yml); optional UptimeRobot — see [MONITORING.md](./MONITORING.md)
 
 ## Health endpoint
 
