@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Navbar from "./components/Navbar";
+import CookieNotice from "./components/CookieNotice";
 import PwaRegistrar from "./components/PwaRegistrar";
 import "./globals.css";
 
@@ -61,6 +62,7 @@ export default function RootLayout({
         <PwaRegistrar />
         <Navbar />
         {children}
+        <CookieNotice />
       </body>
     </html>
   );

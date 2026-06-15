@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 
 const Footer = () => {
   return (
@@ -9,6 +10,12 @@ const Footer = () => {
           favoriter och nya idéer.
         </p>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+        <Link
+          href="/integritet"
+          className="font-medium text-emerald-700 hover:text-emerald-900"
+        >
+          Integritet
+        </Link>
         <a
           href="mailto:eleonora.nocentini@gmail.com"
           className="font-medium text-emerald-700 hover:text-emerald-900"

@@ -7,6 +7,10 @@ test.describe("Receptbok smoke", () => {
     await page.goto("/about", { waitUntil: "domcontentloaded" });
     await expect(page.getByText("Om projektet")).toBeVisible({ timeout: 15_000 });
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Receptbok");
+    await page.goto("/integritet", { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(
+      /integritetspolicy/i
+    );
     await page.goto("/login", { waitUntil: "domcontentloaded" });
     await expect(page.getByLabel(/e-post/i)).toBeVisible();
   });
