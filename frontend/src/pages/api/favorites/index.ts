@@ -1,4 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { enforceRateLimit } from "@/lib/api/rate-limit";
+import { parseRecipeId, rejectOversizedBody } from "@/lib/api/request-guards";
 import { createSupabasePagesApiClient } from "@/lib/supabase/pages-api-client";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -23,9 +25,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === "POST") {
-    const recipeId = String(req.body?.recipeId ?? "").trim();
+    if (rejectOversizedBody(req, res, 4_096)) {
+      return;
+    }
+    if (
+      !enforceRateLimit(req, res, {
+        scope: "favorites-write",
+        limit: 60,
+        windowMs: 60_000,
+      })
+    ) {
+      return;
+    }
+
+    const recipeId = parseRecipeId(req.body?.recipeId);
     if (!recipeId) {
-      return res.status(400).json({ message: "recipeId saknas." });
+      return res.status(400).json({ message: "Ogiltigt recipeId." });
     }
 
     const { error } = await supabase.rpc("save_favorite_recipe", {

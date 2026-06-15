@@ -3,6 +3,9 @@ import * as Sentry from "@sentry/nextjs";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { resolveRecipeImageForServer } from "@/lib/supabase/embedded-recipe-images";
 import { createSupabasePagesApiClient } from "@/lib/supabase/pages-api-client";
+import { enforceRateLimit } from "@/lib/api/rate-limit";
+import { parseRecipeId, rejectOversizedBody } from "@/lib/api/request-guards";
+import { validateRecipePayload } from "@/lib/api/validate-recipe-payload";
 import {
   normalizeRecipePayload,
   recipeRowToClient,
@@ -11,11 +14,11 @@ import {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const supabase = getSupabaseAdmin();
-  const { id } = req.query;
-
-  if (typeof id !== "string" || !id) {
+  const recipeId = parseRecipeId(req.query.id);
+  if (!recipeId) {
     return res.status(400).json({ message: "Ogiltigt recept-id." });
   }
+  const id = recipeId;
 
   if (!supabase) {
     return res.status(503).json({
@@ -108,6 +111,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (req.method === "PUT") {
+      if (rejectOversizedBody(req, res, 512_000)) {
+        return;
+      }
+      if (
+        !enforceRateLimit(req, res, {
+          scope: "recipes-write",
+          limit: 30,
+          windowMs: 60_000,
+        })
+      ) {
+        return;
+      }
+
       const userClient = createSupabasePagesApiClient(req, res);
       const {
         data: { user },
@@ -137,10 +153,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         (req.body ?? {}) as Record<string, unknown>
       );
 
-      if (!payload.name || payload.ingredients.length === 0) {
-        return res.status(400).json({
-          message: "Namn och minst en ingrediens krävs.",
-        });
+      const validationError = validateRecipePayload(payload);
+      if (validationError) {
+        return res.status(400).json({ message: validationError });
       }
 
       const update = {
@@ -173,6 +188,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (req.method === "DELETE") {
+      if (
+        !enforceRateLimit(req, res, {
+          scope: "recipes-delete",
+          limit: 20,
+          windowMs: 60_000,
+        })
+      ) {
+        return;
+      }
+
       const userClient = createSupabasePagesApiClient(req, res);
       const {
         data: { user },

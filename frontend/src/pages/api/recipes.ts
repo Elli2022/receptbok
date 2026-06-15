@@ -3,6 +3,9 @@ import * as Sentry from "@sentry/nextjs";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { createSupabasePagesApiClient } from "@/lib/supabase/pages-api-client";
 import { listRecipesForServer } from "@/lib/supabase/list-recipes-server";
+import { enforceRateLimit } from "@/lib/api/rate-limit";
+import { rejectOversizedBody } from "@/lib/api/request-guards";
+import { validateRecipePayload } from "@/lib/api/validate-recipe-payload";
 import {
   normalizeRecipePayload,
   recipeRowToClient,
@@ -32,6 +35,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (req.method === "POST") {
+      if (rejectOversizedBody(req, res, 512_000)) {
+        return;
+      }
+      if (
+        !enforceRateLimit(req, res, {
+          scope: "recipes-write",
+          limit: 30,
+          windowMs: 60_000,
+        })
+      ) {
+        return;
+      }
+
       const userClient = createSupabasePagesApiClient(req, res);
       const {
         data: { user },
@@ -45,10 +61,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         (req.body ?? {}) as Record<string, unknown>
       );
 
-      if (!payload.name || payload.ingredients.length === 0) {
-        return res.status(400).json({
-          message: "Namn och minst en ingrediens krävs.",
-        });
+      const validationError = validateRecipePayload(payload);
+      if (validationError) {
+        return res.status(400).json({ message: validationError });
       }
 
       const { data, error } = await userClient.rpc("create_recipe", {

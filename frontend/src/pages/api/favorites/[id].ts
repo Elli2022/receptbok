@@ -1,4 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { enforceRateLimit } from "@/lib/api/rate-limit";
+import { parseRecipeId } from "@/lib/api/request-guards";
 import { createSupabasePagesApiClient } from "@/lib/supabase/pages-api-client";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -16,9 +18,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ message: "Metoden är inte tillåten." });
   }
 
-  const recipeId = String(req.query.id ?? "").trim();
+  if (
+    !enforceRateLimit(req, res, {
+      scope: "favorites-write",
+      limit: 60,
+      windowMs: 60_000,
+    })
+  ) {
+    return;
+  }
+
+  const recipeId = parseRecipeId(req.query.id);
   if (!recipeId) {
-    return res.status(400).json({ message: "recipeId saknas." });
+    return res.status(400).json({ message: "Ogiltigt recipeId." });
   }
 
   const { error } = await supabase.rpc("remove_favorite_recipe", {

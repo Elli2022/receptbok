@@ -1,5 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import * as Sentry from "@sentry/nextjs";
+import { enforceRateLimit } from "@/lib/api/rate-limit";
+import { rejectOversizedBody } from "@/lib/api/request-guards";
+import { validateEmail, validatePassword } from "@/lib/api/validate-auth";
 import { createSupabasePagesApiClient } from "@/lib/supabase/pages-api-client";
 import { hasSupabasePublicConfig } from "@/lib/supabase/env";
 
@@ -14,15 +17,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    if (rejectOversizedBody(req, res, 4_096)) {
+      return;
+    }
+    if (
+      !enforceRateLimit(req, res, {
+        scope: "auth-login",
+        limit: 10,
+        windowMs: 15 * 60_000,
+      })
+    ) {
+      return;
+    }
+
     const supabase = createSupabasePagesApiClient(req, res);
     const { email, password } = req.body ?? {};
 
-    if (!email || !password) {
-      return res.status(400).json({ msg: "E-post och lösenord krävs." });
+    const validationError =
+      validateEmail(email) ?? validatePassword(password);
+    if (validationError) {
+      return res.status(400).json({ msg: validationError });
     }
 
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: String(email),
+      email: String(email).trim(),
       password: String(password),
     });
 

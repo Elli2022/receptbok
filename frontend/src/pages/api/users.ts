@@ -1,6 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { enforceRateLimit } from "@/lib/api/rate-limit";
+import { rejectOversizedBody } from "@/lib/api/request-guards";
+import { validateRegistrationFields } from "@/lib/api/validate-auth";
 import {
   getSupabasePublicKey,
   getSupabaseUrl,
@@ -24,11 +27,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).end(`Metoden ${req.method} är inte tillåten.`);
   }
 
-  const { name, username, email, password } = req.body ?? {};
-
-  if (!name || !username || !email || !password) {
-    return res.status(400).json({ msg: "Alla fält krävs." });
+  if (rejectOversizedBody(req, res, 4_096)) {
+    return;
   }
+  if (
+    !enforceRateLimit(req, res, {
+      scope: "auth-register",
+      limit: 5,
+      windowMs: 60 * 60_000,
+    })
+  ) {
+    return;
+  }
+
+  const body = (req.body ?? {}) as Record<string, unknown>;
+  const validationError = validateRegistrationFields(body);
+  if (validationError) {
+    return res.status(400).json({ msg: validationError });
+  }
+
+  const { name, username, email, password } = body;
 
   try {
     const supabaseAnon = createClient(url, anon, {
