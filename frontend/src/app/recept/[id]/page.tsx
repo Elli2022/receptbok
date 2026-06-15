@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import RecipeDetailClient from "./RecipeDetailClient";
+import RecipeJsonLd from "@/app/components/RecipeJsonLd";
+import { absoluteAssetUrl, getSiteUrl } from "@/lib/site-url";
 import {
   getRecipeBasicForServer,
   getRecipeMetadataForServer,
@@ -28,21 +30,27 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const description =
     recipe.description?.slice(0, 160) || "Läs receptet i Receptbok.";
+  const pageUrl = `${getSiteUrl()}/recept/${id}`;
+  const imageUrl = absoluteAssetUrl(recipe.image);
 
   return {
     title: recipe.name,
     description,
+    alternates: {
+      canonical: pageUrl,
+    },
     openGraph: {
       title: recipe.name,
       description,
       type: "article",
-      images: recipe.image ? [{ url: recipe.image }] : undefined,
+      url: pageUrl,
+      images: imageUrl ? [{ url: imageUrl }] : undefined,
     },
     twitter: {
       card: "summary_large_image",
       title: recipe.name,
       description,
-      images: recipe.image ? [recipe.image] : undefined,
+      images: imageUrl ? [imageUrl] : undefined,
     },
   };
 }
@@ -56,5 +64,12 @@ export default async function RecipeDetailPage({ params }: Props) {
     notFound();
   }
 
-  return <RecipeDetailClient initialRecipe={initialRecipe} />;
+  return (
+    <>
+      {initialRecipe ? (
+        <RecipeJsonLd recipe={initialRecipe} recipeId={id} />
+      ) : null}
+      <RecipeDetailClient initialRecipe={initialRecipe} />
+    </>
+  );
 }

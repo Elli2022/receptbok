@@ -1,8 +1,8 @@
 import type { MetadataRoute } from "next";
+import { getSiteUrl } from "@/lib/site-url";
 import { listRecipesForServer } from "@/lib/supabase/list-recipes-server";
 
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://recipe-book-platform.netlify.app";
+const siteUrl = getSiteUrl();
 
 export const revalidate = 3600;
 

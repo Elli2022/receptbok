@@ -2,9 +2,10 @@ import type { Metadata, Viewport } from "next";
 import Navbar from "./components/Navbar";
 import CookieNotice from "./components/CookieNotice";
 import PwaRegistrar from "./components/PwaRegistrar";
+import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
-const siteUrl = "https://recipe-book-platform.netlify.app";
+const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -45,7 +46,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#be123c",
+  themeColor: "#047857",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -59,9 +60,17 @@ export default function RootLayout({
   return (
     <html lang="sv">
       <body>
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-emerald-700 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white"
+        >
+          Hoppa till innehåll
+        </a>
         <PwaRegistrar />
         <Navbar />
-        {children}
+        <div id="main-content" tabIndex={-1} className="outline-none">
+          {children}
+        </div>
         <CookieNotice />
       </body>
     </html>

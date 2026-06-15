@@ -1,4 +1,10 @@
 User-agent: *
 Allow: /
 
+Disallow: /api/
+Disallow: /login
+Disallow: /register
+Disallow: /auth/
+Disallow: /sparade
+
 Sitemap: https://recipe-book-platform.netlify.app/sitemap.xml

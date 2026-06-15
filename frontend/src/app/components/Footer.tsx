@@ -11,6 +11,12 @@ const Footer = () => {
         </p>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
         <Link
+          href="/about"
+          className="font-medium text-emerald-700 hover:text-emerald-900"
+        >
+          Om
+        </Link>
+        <Link
           href="/integritet"
           className="font-medium text-emerald-700 hover:text-emerald-900"
         >

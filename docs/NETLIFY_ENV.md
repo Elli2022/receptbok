@@ -8,6 +8,25 @@ Required for full production behavior (API routes, recipe CRUD, favorites):
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | All | Set on Netlify |
 | `SUPABASE_SERVICE_ROLE_KEY` | Build + runtime (server only) | **Add in Netlify UI** |
 | `NEXT_PUBLIC_SENTRY_DSN` | All | **Recommended** — enables error reporting |
+| `NEXT_PUBLIC_SITE_URL` | All | **Recommended** — canonical URLs, sitemap, auth redirects |
+
+## Quick checklist
+
+- [ ] `NEXT_PUBLIC_SUPABASE_URL` and anon/publishable key set
+- [ ] `SUPABASE_SERVICE_ROLE_KEY` set (server-only, never `NEXT_PUBLIC_`)
+- [ ] `NEXT_PUBLIC_SITE_URL` matches live URL (e.g. `https://recipe-book-platform.netlify.app`)
+- [ ] `NEXT_PUBLIC_SENTRY_DSN` set for error monitoring
+- [ ] External uptime monitor on `/api/health` — see [MONITORING.md](./MONITORING.md)
+
+## Health endpoint
+
+After deploy, verify:
+
+```bash
+curl -s https://recipe-book-platform.netlify.app/api/health
+```
+
+Expect `{"status":"ok","version":"…","timestamp":"…"}`.
 
 ## Sentry (error monitoring)
 
